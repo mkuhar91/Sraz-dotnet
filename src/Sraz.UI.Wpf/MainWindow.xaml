@@ -9,8 +9,8 @@
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="Sraz" FontSize="42" FontWeight="Bold" HorizontalAlignment="Center"/>
             <TextBlock Text="Sraz-inspired .NET quiz game" Margin="0,8,0,16" HorizontalAlignment="Center"/>
-            <Button Content="Start" Width="180" Height="40" Margin="0,0,0,8"/>
-            <Button Content="Exit" Width="180" Height="40"/>
+            <Button Content="Start" Width="180" Height="40" Margin="0,0,0,8" Click="Start_Click"/>
+            <Button Content="Exit" Width="180" Height="40" Click="Exit_Click"/>
         </StackPanel>
     </Grid>
 </Window>

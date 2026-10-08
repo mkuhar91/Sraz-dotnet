@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "category": "General",
+    "difficulty": 1,
+    "text": "What is the capital of Croatia?",
+    "options": ["Zagreb", "Split", "Rijeka", "Osijek"],
+    "correctOptionIndex": 0,
+    "explanation": "Zagreb is the capital and largest city of Croatia."
+  },
+  {
+    "category": "Science",
+    "difficulty": 1,
+    "text": "What planet is known as the Red Planet?",
+    "options": ["Venus", "Mars", "Jupiter", "Mercury"],
+    "correctOptionIndex": 1,
+    "explanation": "Mars appears red because of iron oxide on its surface."
+  },
+  {
+    "category": "History",
+    "difficulty": 2,
+    "text": "In which year did World War II end?",
+    "options": ["1943", "1944", "1945", "1946"],
+    "correctOptionIndex": 2,
+    "explanation": "WWII ended in 1945."
+  },
+  {
+    "category": "Math",
+    "difficulty": 1,
+    "text": "What is 9 x 7?",
+    "options": ["56", "63", "72", "49"],
+    "correctOptionIndex": 1,
+    "explanation": "9 multiplied by 7 equals 63."
+  },
+  {
+    "category": "Geography",
+    "difficulty": 2,
+    "text": "Which river flows through Paris?",
+    "options": ["Danube", "Seine", "Rhine", "Thames"],
+    "correctOptionIndex": 1,
+    "explanation": "The Seine river flows through Paris."
+  },
+  {
+    "category": "Literature",
+    "difficulty": 2,
+    "text": "Who wrote '1984'?",
+    "options": ["George Orwell", "Aldous Huxley", "Jules Verne", "Ernest Hemingway"],
+    "correctOptionIndex": 0,
+    "explanation": "George Orwell published 1984 in 1949."
+  },
+  {
+    "category": "Technology",
+    "difficulty": 1,
+    "text": "What does CPU stand for?",
+    "options": ["Central Process Unit", "Central Processing Unit", "Computer Personal Unit", "Central Program Utility"],
+    "correctOptionIndex": 1,
+    "explanation": "CPU means Central Processing Unit."
+  },
+  {
+    "category": "Art",
+    "difficulty": 2,
+    "text": "Who painted the Mona Lisa?",
+    "options": ["Michelangelo", "Leonardo da Vinci", "Raphael", "Donatello"],
+    "correctOptionIndex": 1,
+    "explanation": "Mona Lisa was painted by Leonardo da Vinci."
+  },
+  {
+    "category": "Sports",
+    "difficulty": 1,
+    "text": "How many players are on a soccer team on the field?",
+    "options": ["9", "10", "11", "12"],
+    "correctOptionIndex": 2,
+    "explanation": "Each soccer team fields 11 players."
+  },
+  {
+    "category": "Music",
+    "difficulty": 2,
+    "text": "How many keys does a standard piano have?",
+    "options": ["76", "81", "88", "92"],
+    "correctOptionIndex": 2,
+    "explanation": "A standard full-size piano has 88 keys."
+  }
+]

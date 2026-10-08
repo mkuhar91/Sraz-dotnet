@@ -30,6 +30,16 @@ public partial class MainWindow : Window
         var window = new QuestionWindow(vm);
         window.Owner = this;
         window.ShowDialog();
+
+        var summaryVm = new RoundSummaryViewModel(
+            round.Score,
+            round.Questions.Count,
+            round.CorrectAnswers,
+            round.WrongAnswers,
+            round.Timeouts);
+
+        var summary = new RoundSummaryWindow(summaryVm) { Owner = this };
+        summary.ShowDialog();
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

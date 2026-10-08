@@ -9,16 +9,18 @@ public partial class QuestionWindow : Window
     {
         InitializeComponent();
         DataContext = vm;
+        Loaded += (_, _) => vm.StartTimer();
+        Closed += (_, _) => vm.Dispose();
     }
 
-    private void Answer_Click(object sender, RoutedEventArgs e)
+    private async void Answer_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: string selectedOption } && DataContext is QuestionViewModel vm)
         {
-            vm.SelectAnswer(selectedOption);
+            await vm.SelectAnswerAsync(selectedOption);
             if (!vm.HasQuestion)
             {
-                MessageBox.Show($"Round finished! Final score: {vm.Score}", "Sraz", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogResult = true;
                 Close();
             }
         }

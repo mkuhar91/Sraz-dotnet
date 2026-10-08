@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sraz.Domain\Sraz.Domain.csproj" />
+    <ProjectReference Include="..\Sraz.Application\Sraz.Application.csproj" />
+    <ProjectReference Include="..\Sraz.Infrastructure\Sraz.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

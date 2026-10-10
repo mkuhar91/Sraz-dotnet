@@ -4,13 +4,45 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Sraz" Height="450" Width="800">
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+        Title="Sraz" Height="520" Width="840">
+    <Grid Margin="30">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="420">
             <TextBlock Text="Sraz" FontSize="42" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBlock Text="Sraz-inspired .NET quiz game" Margin="0,8,0,16" HorizontalAlignment="Center"/>
-            <Button Content="Start" Width="180" Height="40" Margin="0,0,0,8" Click="Start_Click"/>
-            <Button Content="Exit" Width="180" Height="40" Click="Exit_Click"/>
+            <TextBlock Text="Sraz-inspired .NET quiz game" Margin="0,8,0,18" HorizontalAlignment="Center"/>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Player name" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <TextBox Grid.Column="1" Text="{Binding PlayerName, UpdateSourceTrigger=PropertyChanged}" Height="32"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Category" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Height="32"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Difficulty" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Difficulties}" SelectedItem="{Binding SelectedDifficulty}" Height="32"/>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Start game" Width="170" Height="42" Margin="0,0,10,0" Click="Start_Click"/>
+                <Button Content="Leaderboard" Width="170" Height="42" Margin="0,0,0,0" Click="Leaderboard_Click"/>
+            </StackPanel>
+
+            <Button Content="Exit" Width="180" Height="40" Margin="20,16,0,0" Click="Exit_Click" HorizontalAlignment="Center"/>
         </StackPanel>
     </Grid>
 </Window>

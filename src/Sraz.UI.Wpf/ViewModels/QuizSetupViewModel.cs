@@ -1,8 +1,3 @@
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Windows;
-using Sraz.Domain.Models;
-
 namespace Sraz.UI.Wpf.ViewModels;
 
 public sealed class QuizSetupViewModel : BindableBase
@@ -29,6 +24,20 @@ public sealed class QuizSetupViewModel : BindableBase
         set => SetProperty(ref _selectedDifficulty, value);
     }
 
-    public List<string> Categories { get; } = new() { "All", "Geography", "Science", "History", "Technology" };
+    public List<string> Categories { get; } = new()
+    {
+        "All",
+        "General",
+        "Science",
+        "History",
+        "Math",
+        "Geography",
+        "Literature",
+        "Technology",
+        "Art",
+        "Sports",
+        "Music"
+    };
+
     public List<string> Difficulties { get; } = new() { "Easy", "Medium", "Hard" };
 }

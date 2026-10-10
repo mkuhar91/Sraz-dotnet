@@ -18,6 +18,17 @@ What has been implemented:
 - Leaderboard persistence and retrieval for completed games
 - Unit tests covering key game logic and filtering behavior
 
+## How it works
+
+1. The user launches the WPF app and enters a player name.
+2. The main screen lets them choose a category and difficulty before starting.
+3. `MainWindow` loads the JSON question provider, creates a filtered round, and opens the question window.
+4. Each question is displayed with multiple-choice answers and a countdown timer.
+5. The selected answer is validated against the correct option index and the round score is updated.
+6. When the timer expires or the user answers, the UI shows the explanation and then advances to the next question.
+7. After the last question, the round closes and a summary window shows score, totals, and timeout stats.
+8. The completed result is persisted to the leaderboard so the player can compare scores over time.
+
 ## Solution structure
 
 - `src/Sraz.Domain` - domain models and core entities

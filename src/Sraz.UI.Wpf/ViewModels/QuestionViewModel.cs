@@ -92,8 +92,8 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
         _timer.Stop();
         CanAnswer = false;
 
-        var selectedIndex = current.Options.ToList().IndexOf(selectedOption);
-        var isCorrect = _round.SubmitAnswer(selectedIndex);
+        var selectedIndex = current.Options.IndexOf(selectedOption);
+        var isCorrect = selectedIndex >= 0 && _round.SubmitAnswer(selectedIndex);
 
         FeedbackTitle = isCorrect ? "Correct!" : "Wrong!";
         FeedbackExplanation = current.Explanation;

@@ -22,6 +22,12 @@ public sealed class QuizSetupViewModel : BindableBase
     private string _selectedDifficulty = "Easy";
     private string _selectedMode = nameof(GameMode.Classic);
     private string _selectedLanguage = Localizer.Instance.Language;
+    private int _boardPlayerCount = 2;
+    private string _boardPlayerOneName = "Player";
+    private string _boardPlayerTwoName = "Player 2";
+    private string _boardPlayerThreeName = "Player 3";
+    private string _boardPlayerFourName = "Player 4";
+    private string _boardSize = "10";
 
     public QuizSetupViewModel()
     {
@@ -33,6 +39,7 @@ public sealed class QuizSetupViewModel : BindableBase
             new(Localizer.English, "English"),
             new(Localizer.Croatian, "Hrvatski")
         };
+        BoardPlayerCounts = new[] { 1, 2, 3, 4 };
 
         Localizer.Instance.LanguageChanged += OnLanguageChanged;
     }
@@ -44,6 +51,43 @@ public sealed class QuizSetupViewModel : BindableBase
     public List<ChoiceItem> Modes { get; }
 
     public List<ChoiceItem> Languages { get; }
+    public IReadOnlyList<int> BoardPlayerCounts { get; }
+
+    public int BoardPlayerCount
+    {
+        get => _boardPlayerCount;
+        set => SetProperty(ref _boardPlayerCount, value);
+    }
+
+    public string BoardPlayerOneName
+    {
+        get => _boardPlayerOneName;
+        set => SetProperty(ref _boardPlayerOneName, value);
+    }
+
+    public string BoardPlayerTwoName
+    {
+        get => _boardPlayerTwoName;
+        set => SetProperty(ref _boardPlayerTwoName, value);
+    }
+
+    public string BoardPlayerThreeName
+    {
+        get => _boardPlayerThreeName;
+        set => SetProperty(ref _boardPlayerThreeName, value);
+    }
+
+    public string BoardPlayerFourName
+    {
+        get => _boardPlayerFourName;
+        set => SetProperty(ref _boardPlayerFourName, value);
+    }
+
+    public string BoardSize
+    {
+        get => _boardSize;
+        set => SetProperty(ref _boardSize, value);
+    }
 
     public string PlayerName
     {

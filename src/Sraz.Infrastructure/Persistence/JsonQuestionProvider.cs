@@ -97,7 +97,7 @@ public sealed class JsonQuestionProvider(string filePath) : IQuestionProvider
         return type?.Trim().ToLowerInvariant() switch
         {
             "truefalse" or "true_false" or "boolean" => QuestionType.TrueFalse,
-            "textinput" or "text" => QuestionType.TextInput,
+            "textinput" or "freetext" or "free_text" or "text" => QuestionType.TextInput,
             _ => QuestionType.MultipleChoice
         };
     }

@@ -37,6 +37,38 @@ public class BoardGameTests
         Assert.Throws<ArgumentException>(() => engine.StartGame(["A", "B", "C", "D", "E"]));
     }
 
+    [Theory]
+    [InlineData(6)]
+    [InlineData(10)]
+    [InlineData(15)]
+    public void StartGame_UsesDistinctCornerStartingPositions(int boardSize)
+    {
+        var engine = CreateEngine();
+        engine.StartGame(["A", "B", "C", "D"], boardSize, 7);
+
+        Assert.Equal(new[] { (0, 0), (0, boardSize - 1), (boardSize - 1, 0), (boardSize - 1, boardSize - 1) },
+            engine.Players.Select(player => (player.Pawns[0].Row, player.Pawns[0].Column)));
+        Assert.Equal(12, engine.Board.Cells.Cast<BoardCell>().Count(cell => cell.Occupant is not null));
+    }
+
+    [Theory]
+    [InlineData(2, new[] { 0, 3 })]
+    [InlineData(3, new[] { 0, 1, 2 })]
+    public void StartGame_AssignsExpectedOppositeOrFirstCorners(int playerCount, int[] corners)
+    {
+        var engine = CreateEngine();
+        engine.StartGame(Enumerable.Range(0, playerCount).Select(index => $"P{index}").ToArray(), 6, 8);
+        var expectedCorners = corners.Select(corner => corner switch
+        {
+            0 => (0, 0),
+            1 => (0, 5),
+            2 => (5, 0),
+            _ => (5, 5)
+        });
+
+        Assert.Equal(expectedCorners, engine.Players.Select(player => (player.Pawns[0].Row, player.Pawns[0].Column)));
+    }
+
     [Fact]
     public async Task OwnPawnBlocksMoveWithoutConsumingAction()
     {
@@ -69,6 +101,14 @@ public class BoardGameTests
         Assert.True(pawns[1].HasActedThisTurn);
         Assert.True(last.TurnCompleted);
         Assert.Equal("Bob", engine.CurrentPlayer.Name);
+
+        var bobPawns = engine.CurrentPlayer.Pawns;
+        engine.ResolveMove(bobPawns[1], Direction.Up, true);
+        engine.ResolveMove(bobPawns[2], Direction.Up, true);
+        engine.ResolveMove(bobPawns[0], Direction.Left, true);
+
+        Assert.Equal("Alice", engine.CurrentPlayer.Name);
+        Assert.All(engine.CurrentPlayer.ActivePawns, pawn => Assert.False(pawn.HasActedThisTurn));
     }
 
     [Fact]
@@ -100,7 +140,7 @@ public class BoardGameTests
     }
 
     [Fact]
-    public void FailedDuelStopsOnFirstIncorrectAndConsumesAction()
+    public async Task FailedDuelStopsOnFirstIncorrectAndConsumesAction()
     {
         var engine = CreateEngine();
         engine.StartGame(["Alice", "Bob"], 6, 4);
@@ -108,11 +148,39 @@ public class BoardGameTests
         var defender = engine.Players[1].Pawns[0];
         engine.Board.MovePawn(defender, engine.Board.GetCell(0, 2));
 
+        var request = await engine.RequestMove(attacker, Direction.Right);
         var result = engine.ResolveDuel(attacker, Direction.Right, [false]);
 
+        Assert.True(request.IsDuel);
         Assert.Equal(MoveOutcome.Stayed, result.Outcome);
         Assert.True(attacker.HasActedThisTurn);
         Assert.False(defender.IsCaptured);
+    }
+
+    [Fact]
+    public async Task EliminatedPlayerIsSkippedInThreePlayerGame()
+    {
+        var engine = CreateEngine();
+        engine.StartGame(["Alice", "Bob", "Cara"], 6, 3);
+        var attacker = engine.Players[0].Pawns[1];
+        var defender = engine.Players[1].Pawns[0];
+        engine.Board.MovePawn(defender, engine.Board.GetCell(0, 2));
+        foreach (var otherPawn in engine.Players[1].Pawns.Skip(1))
+        {
+            engine.Board.CapturePawn(otherPawn);
+        }
+
+        var request = await engine.RequestMove(attacker, Direction.Right);
+        Assert.True(request.IsDuel);
+        engine.ResolveDuel(attacker, Direction.Right, [true, true, true]);
+
+        Assert.True(engine.Players[1].IsEliminated);
+        Assert.Equal(GameState.InProgress, engine.State);
+        Assert.Null(engine.Winner);
+
+        engine.NextTurn();
+
+        Assert.Equal("Cara", engine.CurrentPlayer.Name);
     }
 
     [Fact]

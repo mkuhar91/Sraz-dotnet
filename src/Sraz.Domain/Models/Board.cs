@@ -44,9 +44,10 @@ public sealed class Board
     {
         ArgumentNullException.ThrowIfNull(pawn);
         var cell = GetCell(row, column);
-        if (cell.Occupant is not null)
+        if (pawn.IsCaptured || Cells.Cast<BoardCell>().Any(existing => ReferenceEquals(existing.Occupant, pawn)) ||
+            cell.Occupant is not null)
         {
-            throw new InvalidOperationException("The board cell is already occupied.");
+            throw new InvalidOperationException("The pawn or board cell is not available.");
         }
 
         pawn.Row = row;
@@ -59,7 +60,8 @@ public sealed class Board
         ArgumentNullException.ThrowIfNull(pawn);
         ArgumentNullException.ThrowIfNull(target);
         var source = GetCell(pawn.Row, pawn.Column);
-        if (!ReferenceEquals(source.Occupant, pawn) || target.Occupant is not null)
+        if (pawn.IsCaptured || !ReferenceEquals(source.Occupant, pawn) ||
+            !ReferenceEquals(GetCell(target.Row, target.Column), target) || target.Occupant is not null)
         {
             throw new InvalidOperationException("The pawn cannot be moved to the target cell.");
         }
@@ -74,7 +76,7 @@ public sealed class Board
     {
         ArgumentNullException.ThrowIfNull(pawn);
         var cell = GetCell(pawn.Row, pawn.Column);
-        if (!ReferenceEquals(cell.Occupant, pawn))
+        if (pawn.IsCaptured || !ReferenceEquals(cell.Occupant, pawn))
         {
             throw new InvalidOperationException("The pawn is not on the board.");
         }

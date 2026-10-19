@@ -72,6 +72,46 @@ public partial class MainWindow : Window
             _setupViewModel.SelectedDifficulty);
     }
 
+    private void Board_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!int.TryParse(_setupViewModel.BoardSize, out var size) || size <= 5)
+            {
+                MessageBox.Show(Localizer.Instance.Get("BoardSizeInvalid"), "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var allNames = new[]
+            {
+                _setupViewModel.BoardPlayerOneName,
+                _setupViewModel.BoardPlayerTwoName,
+                _setupViewModel.BoardPlayerThreeName,
+                _setupViewModel.BoardPlayerFourName
+            };
+            var names = allNames.Take(_setupViewModel.BoardPlayerCount).ToArray();
+            if (names.Any(string.IsNullOrWhiteSpace))
+            {
+                MessageBox.Show(Localizer.Instance.Get("MsgNameRequired"), "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            GameEngine CreateGame()
+            {
+                var game = new GameEngine(new JsonQuestionProvider(AppPaths.QuestionsFile));
+                game.StartGame(names, size);
+                return game;
+            }
+
+            var window = new BoardWindow(CreateGame(), CreateGame) { Owner = this };
+            window.ShowDialog();
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(Localizer.Instance.Format("MsgError", exception.Message), "Sraz", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void Leaderboard_Click(object sender, RoutedEventArgs e)
     {
         try

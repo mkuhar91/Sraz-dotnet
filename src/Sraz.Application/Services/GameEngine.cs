@@ -240,7 +240,19 @@ public sealed class GameEngine : IGameEngine
             return new MoveResolution { Outcome = MoveOutcome.Blocked };
         }
 
-        if (answersCorrect.Count > 3 || (answersCorrect.All(correct => correct) && answersCorrect.Count != 3))
+        var firstIncorrect = -1;
+        for (var index = 0; index < answersCorrect.Count; index++)
+        {
+            if (!answersCorrect[index])
+            {
+                firstIncorrect = index;
+                break;
+            }
+        }
+
+        if (answersCorrect.Count > 3 ||
+            (firstIncorrect < 0 && answersCorrect.Count != 3) ||
+            (firstIncorrect >= 0 && firstIncorrect != answersCorrect.Count - 1))
         {
             throw new ArgumentException("A duel requires three correct answers or may stop at the first incorrect answer.", nameof(answersCorrect));
         }
@@ -267,6 +279,15 @@ public sealed class GameEngine : IGameEngine
 
     private MoveResolution CompleteAction(MoveOutcome outcome, Player? eliminatedPlayer = null)
     {
+        var remainingPawns = CurrentPlayer.ActivePawns.Where(pawn => !pawn.HasActedThisTurn).ToList();
+        if (remainingPawns.All(pawn => GetAvailableMoves(pawn).Count == 0))
+        {
+            foreach (var pawn in remainingPawns)
+            {
+                pawn.MarkActedThisTurn();
+            }
+        }
+
         var wasTurnCompleted = CurrentPlayer.ActivePawns.All(pawn => pawn.HasActedThisTurn);
         if (wasTurnCompleted)
         {

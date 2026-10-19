@@ -40,6 +40,49 @@ public sealed class Board
         return Cells[row, column];
     }
 
+    public void PlacePawn(Pawn pawn, int row, int column)
+    {
+        ArgumentNullException.ThrowIfNull(pawn);
+        var cell = GetCell(row, column);
+        if (cell.Occupant is not null)
+        {
+            throw new InvalidOperationException("The board cell is already occupied.");
+        }
+
+        pawn.Row = row;
+        pawn.Column = column;
+        cell.Occupant = pawn;
+    }
+
+    public void MovePawn(Pawn pawn, BoardCell target)
+    {
+        ArgumentNullException.ThrowIfNull(pawn);
+        ArgumentNullException.ThrowIfNull(target);
+        var source = GetCell(pawn.Row, pawn.Column);
+        if (!ReferenceEquals(source.Occupant, pawn) || target.Occupant is not null)
+        {
+            throw new InvalidOperationException("The pawn cannot be moved to the target cell.");
+        }
+
+        source.Occupant = null;
+        pawn.Row = target.Row;
+        pawn.Column = target.Column;
+        target.Occupant = pawn;
+    }
+
+    public void CapturePawn(Pawn pawn)
+    {
+        ArgumentNullException.ThrowIfNull(pawn);
+        var cell = GetCell(pawn.Row, pawn.Column);
+        if (!ReferenceEquals(cell.Occupant, pawn))
+        {
+            throw new InvalidOperationException("The pawn is not on the board.");
+        }
+
+        cell.Occupant = null;
+        pawn.IsCaptured = true;
+    }
+
     public IReadOnlyList<(int Row, int Column)> GetCornerCells() =>
         new[] { (0, 0), (0, Size - 1), (Size - 1, 0), (Size - 1, Size - 1) };
 

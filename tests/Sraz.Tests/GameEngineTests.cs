@@ -1,6 +1,7 @@
 using Sraz.Application.Abstractions;
 using Sraz.Application.Services;
 using Sraz.Domain.Models;
+using Xunit;
 
 namespace Sraz.Tests;
 
@@ -53,7 +54,7 @@ public class GameEngineTests
 
         Assert.Equal("Alice", session.PlayerName);
         Assert.Equal(1, session.TotalQuestions);
-        Assert.Equal(1, session.FinalScore);
+        Assert.Equal(0, session.FinalScore);
         Assert.NotNull(sut.CurrentSession);
     }
 

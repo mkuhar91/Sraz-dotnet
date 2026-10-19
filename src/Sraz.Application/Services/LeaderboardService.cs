@@ -1,19 +1,51 @@
+using Sraz.Application.Abstractions;
 using Sraz.Domain.Models;
 
 namespace Sraz.Application.Services;
 
+public sealed record LeaderboardFilter(
+    string? Category = null,
+    string? Difficulty = null,
+    string? Mode = null,
+    DateTime? SinceUtc = null)
+{
+    public bool Matches(LeaderboardEntry entry)
+    {
+        return Matches(Category, entry.Category)
+               && Matches(Difficulty, entry.Difficulty)
+               && Matches(Mode, entry.Mode)
+               && (SinceUtc is null || entry.PlayedAtUtc >= SinceUtc.Value);
+    }
+
+    private static bool Matches(string? wanted, string actual)
+    {
+        return string.IsNullOrWhiteSpace(wanted)
+               || string.Equals(wanted, "All", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(wanted, actual, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
 public sealed class LeaderboardService
 {
-    private readonly LeaderboardStore _store;
+    private const int MaxStoredEntries = 500;
+    private static readonly object Sync = new();
 
-    public LeaderboardService(LeaderboardStore store)
+    private readonly ILeaderboardStore _store;
+
+    public LeaderboardService(ILeaderboardStore store)
     {
         _store = store;
     }
 
-    public List<LeaderboardEntry> GetTopEntries(int count = 10)
+    public List<LeaderboardEntry> GetTopEntries(int count = 10, LeaderboardFilter? filter = null)
     {
-        return _store.Load()
+        IEnumerable<LeaderboardEntry> entries = _store.Load();
+        if (filter is not null)
+        {
+            entries = entries.Where(filter.Matches);
+        }
+
+        return entries
             .OrderByDescending(x => x.Score)
             .Take(count)
             .ToList();
@@ -21,8 +53,17 @@ public sealed class LeaderboardService
 
     public void SaveEntry(LeaderboardEntry entry)
     {
-        var entries = _store.Load();
-        entries.Add(entry);
-        _store.Save(entries);
+        lock (Sync)
+        {
+            var entries = _store.Load();
+            entries.Add(entry);
+
+            var trimmed = entries
+                .OrderByDescending(x => x.Score)
+                .Take(MaxStoredEntries)
+                .ToList();
+
+            _store.Save(trimmed);
+        }
     }
 }

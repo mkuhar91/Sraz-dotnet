@@ -1,31 +1,52 @@
 <Window x:Class="Sraz.UI.Wpf.LeaderboardWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Title="Sraz - Leaderboard" Height="420" Width="640" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        xmlns:loc="clr-namespace:Sraz.UI.Wpf.Localization"
+        Title="Sraz" Height="520" Width="960" WindowStartupLocation="CenterOwner">
     <Grid Margin="18">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Leaderboard" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+        <TextBlock Text="{Binding [Leaderboard], Source={x:Static loc:Localizer.Instance}}" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
 
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,10">
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="{Binding [Category], Source={x:Static loc:Localizer.Instance}}"/>
+                <ComboBox ItemsSource="{Binding Categories}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedCategory}"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="{Binding [Difficulty], Source={x:Static loc:Localizer.Instance}}"/>
+                <ComboBox ItemsSource="{Binding Difficulties}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedDifficulty}"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="{Binding [Mode], Source={x:Static loc:Localizer.Instance}}"/>
+                <ComboBox ItemsSource="{Binding Modes}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedMode}"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{Binding [Period], Source={x:Static loc:Localizer.Instance}}"/>
+                <ComboBox ItemsSource="{Binding Periods}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedPeriod}"/>
+            </StackPanel>
+        </UniformGrid>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Player" Binding="{Binding PlayerName}" Width="*"/>
-                <DataGridTextColumn Header="Score" Binding="{Binding Score}" Width="80"/>
-                <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120"/>
-                <DataGridTextColumn Header="Difficulty" Binding="{Binding Difficulty}" Width="110"/>
-                <DataGridTextColumn Header="Correct" Binding="{Binding CorrectAnswers}" Width="80"/>
-                <DataGridTextColumn Header="Wrong" Binding="{Binding WrongAnswers}" Width="70"/>
-                <DataGridTextColumn Header="Timeouts" Binding="{Binding Timeouts}" Width="80"/>
+                <DataGridTextColumn Header="{Binding [ColPlayer], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding PlayerName}" Width="*"/>
+                <DataGridTextColumn Header="{Binding [ColScore], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding Score}" Width="70"/>
+                <DataGridTextColumn Header="{Binding [ColMode], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding Mode}" Width="120"/>
+                <DataGridTextColumn Header="{Binding [ColCategory], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding Category}" Width="100"/>
+                <DataGridTextColumn Header="{Binding [ColDifficulty], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding Difficulty}" Width="80"/>
+                <DataGridTextColumn Header="{Binding [ColCorrect], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding CorrectAnswers}" Width="60"/>
+                <DataGridTextColumn Header="{Binding [ColWrong], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding WrongAnswers}" Width="60"/>
+                <DataGridTextColumn Header="{Binding [ColTimeouts], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding Timeouts}" Width="60"/>
+                <DataGridTextColumn Header="{Binding [ColStreak], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding BestStreak}" Width="60"/>
+                <DataGridTextColumn Header="{Binding [ColDate], Source={x:Static loc:Localizer.Instance}}" Binding="{Binding PlayedAt}" Width="130"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <Button Grid.Row="2" Content="Close" Width="140" Height="34" HorizontalAlignment="Center" Margin="0,18,0,0" Click="Close_Click"/>
+        <Button Grid.Row="3" Content="{Binding [Close], Source={x:Static loc:Localizer.Instance}}" Width="140" Height="34" HorizontalAlignment="Center" Margin="0,14,0,0" Click="Close_Click"/>
     </Grid>
 </Window>

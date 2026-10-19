@@ -49,7 +49,7 @@ public sealed class GameEngine : IGameEngine
         }
 
         var roundService = new QuizRoundService(_questionProvider);
-        var round = await roundService.CreateRoundAsync(questionCount, category, difficulty, cancellationToken);
+        var round = await roundService.CreateRoundAsync(questionCount, category, difficulty, cancellationToken: cancellationToken);
 
         var session = new GameSession
         {

@@ -9,7 +9,9 @@ public sealed class LeaderboardEntry
     public int CorrectAnswers { get; set; }
     public int WrongAnswers { get; set; }
     public int Timeouts { get; set; }
+    public int BestStreak { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Difficulty { get; set; } = string.Empty;
+    public string Mode { get; set; } = nameof(GameMode.Classic);
     public DateTime PlayedAtUtc { get; set; } = DateTime.UtcNow;
 }

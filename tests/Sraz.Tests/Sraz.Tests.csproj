@@ -19,6 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sraz.Domain\Sraz.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Sraz.Application\Sraz.Application.csproj" />
+    <ProjectReference Include="..\..\src\Sraz.Application\Sraz.Application.csproj" /><ProjectReference Include="..\..\src\Sraz.Infrastructure\Sraz.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

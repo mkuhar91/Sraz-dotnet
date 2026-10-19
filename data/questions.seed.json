@@ -78,5 +78,8 @@
     "options": ["76", "81", "88", "92"],
     "correctOptionIndex": 2,
     "explanation": "A standard full-size piano has 88 keys."
-  }
+  },
+  { "category": "Geography", "difficulty": 1, "type": "TrueFalse", "text": "The Adriatic Sea borders Croatia.", "options": ["True", "False"], "correctOptionIndex": 0, "explanation": "Croatia has a coast on the Adriatic." },
+  { "category": "Science", "difficulty": 2, "type": "TextInput", "text": "What is the chemical symbol for gold?", "acceptedAnswers": ["Au"], "explanation": "Au comes from Latin aurum." }
 ]
+

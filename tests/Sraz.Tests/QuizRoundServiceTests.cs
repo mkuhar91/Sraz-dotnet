@@ -1,6 +1,7 @@
 using Sraz.Application.Abstractions;
 using Sraz.Application.Services;
 using Sraz.Domain.Models;
+using Xunit;
 
 namespace Sraz.Tests;
 

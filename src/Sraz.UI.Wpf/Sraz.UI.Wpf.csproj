@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -7,8 +7,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="..\..\data\questions.*.json" Link="data\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Sraz.Domain\Sraz.Domain.csproj" />
     <ProjectReference Include="..\Sraz.Application\Sraz.Application.csproj" />
     <ProjectReference Include="..\Sraz.Infrastructure\Sraz.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
+

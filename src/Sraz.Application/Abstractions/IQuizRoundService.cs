@@ -8,5 +8,6 @@ public interface IQuizRoundService
         int numberOfQuestions = 10,
         string? category = null,
         string? difficulty = null,
+        GameMode mode = GameMode.Classic,
         CancellationToken cancellationToken = default);
 }

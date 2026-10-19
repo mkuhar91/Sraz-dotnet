@@ -1,7 +1,7 @@
-using System.IO;
 using System.Windows;
 using Sraz.Application.Services;
 using Sraz.Infrastructure.Persistence;
+using Sraz.UI.Wpf.Localization;
 using Sraz.UI.Wpf.ViewModels;
 
 namespace Sraz.UI.Wpf;
@@ -19,59 +19,71 @@ public partial class MainWindow : Window
 
     private async void Start_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
+            await StartQuizAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Localizer.Instance.Format("MsgError", ex.Message), "Sraz", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task StartQuizAsync()
+    {
+        var loc = Localizer.Instance;
         var playerName = _setupViewModel.PlayerName.Trim();
         if (string.IsNullOrWhiteSpace(playerName))
         {
-            MessageBox.Show("Please enter a player name before starting.", "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(loc.Get("MsgNameRequired"), "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var dataPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "data", "questions.seed.json"));
-        var provider = new JsonQuestionProvider(dataPath);
+        var provider = new JsonQuestionProvider(AppPaths.QuestionsFile);
         var roundService = new QuizRoundService(provider);
-        var round = await roundService.CreateRoundAsync(10, _setupViewModel.SelectedCategory, _setupViewModel.SelectedDifficulty);
+        var round = await roundService.CreateRoundAsync(
+            10, _setupViewModel.SelectedCategory, _setupViewModel.SelectedDifficulty, _setupViewModel.Mode);
 
         if (round.Questions.Count == 0)
         {
-            MessageBox.Show("No questions found for the selected category/difficulty. Please adjust the filters.", "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(loc.Get("MsgNoQuestions"), "Sraz", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         var vm = new QuestionViewModel(round);
-        var window = new QuestionWindow(vm);
-        window.Owner = this;
+        var window = new QuestionWindow(vm) { Owner = this };
         window.ShowDialog();
 
-        var summaryVm = new RoundSummaryViewModel(
-            round.Score,
-            round.Questions.Count,
-            round.CorrectAnswers,
-            round.WrongAnswers,
-            round.Timeouts);
+        if (!round.IsFinished)
+        {
+            return;
+        }
 
-        var summary = new RoundSummaryWindow(summaryVm) { Owner = this };
+        var summary = new RoundSummaryWindow(new RoundSummaryViewModel(round)) { Owner = this };
         summary.ShowDialog();
 
-        var leaderboardPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "data", "leaderboard.json"));
         var leaderboardViewModel = new LeaderboardViewModel(
-            new LeaderboardService(new LeaderboardStore(leaderboardPath)));
+            new LeaderboardService(new LeaderboardStore(AppPaths.LeaderboardFile)));
 
         leaderboardViewModel.SaveCurrentGame(
             playerName,
-            round.Score,
-            round.CorrectAnswers,
-            round.WrongAnswers,
-            round.Timeouts,
+            round,
             _setupViewModel.SelectedCategory,
             _setupViewModel.SelectedDifficulty);
     }
 
     private void Leaderboard_Click(object sender, RoutedEventArgs e)
     {
-        var leaderboardPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "data", "leaderboard.json"));
-        var viewModel = new LeaderboardViewModel(new LeaderboardService(new LeaderboardStore(leaderboardPath)));
-        var leaderboardWindow = new LeaderboardWindow(viewModel) { Owner = this };
-        leaderboardWindow.ShowDialog();
+        try
+        {
+            var viewModel = new LeaderboardViewModel(new LeaderboardService(new LeaderboardStore(AppPaths.LeaderboardFile)));
+            var leaderboardWindow = new LeaderboardWindow(viewModel) { Owner = this };
+            leaderboardWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Localizer.Instance.Format("MsgLeaderboardError", ex.Message), "Sraz", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

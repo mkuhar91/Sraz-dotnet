@@ -1,10 +1,49 @@
+using Sraz.Domain.Models;
+using Sraz.UI.Wpf.Localization;
+
 namespace Sraz.UI.Wpf.ViewModels;
 
 public sealed class QuizSetupViewModel : BindableBase
 {
+    private static readonly string[] CategoryValues =
+    {
+        "All", "General", "Science", "History", "Math", "Geography", "Literature", "Technology", "Art", "Sports", "Music"
+    };
+
+    private static readonly string[] DifficultyValues = { "Easy", "Medium", "Hard" };
+
+    private static readonly string[] ModeValues =
+    {
+        nameof(GameMode.Classic), nameof(GameMode.Survival), nameof(GameMode.TimeAttack), nameof(GameMode.Daily)
+    };
+
     private string _playerName = "Player";
     private string _selectedCategory = "All";
     private string _selectedDifficulty = "Easy";
+    private string _selectedMode = nameof(GameMode.Classic);
+    private string _selectedLanguage = Localizer.Instance.Language;
+
+    public QuizSetupViewModel()
+    {
+        Categories = CategoryValues.Select(v => new ChoiceItem(v, Localizer.Instance.CategoryLabel(v))).ToList();
+        Difficulties = DifficultyValues.Select(v => new ChoiceItem(v, Localizer.Instance.DifficultyLabel(v))).ToList();
+        Modes = ModeValues.Select(v => new ChoiceItem(v, Localizer.Instance.ModeLabel(v))).ToList();
+        Languages = new List<ChoiceItem>
+        {
+            new(Localizer.English, "English"),
+            new(Localizer.Croatian, "Hrvatski")
+        };
+
+        Localizer.Instance.LanguageChanged += OnLanguageChanged;
+    }
+
+    public List<ChoiceItem> Categories { get; }
+
+    public List<ChoiceItem> Difficulties { get; }
+
+    public List<ChoiceItem> Modes { get; }
+
+    public List<ChoiceItem> Languages { get; }
 
     public string PlayerName
     {
@@ -15,29 +54,79 @@ public sealed class QuizSetupViewModel : BindableBase
     public string SelectedCategory
     {
         get => _selectedCategory;
-        set => SetProperty(ref _selectedCategory, value);
+        set
+        {
+            if (value is not null)
+            {
+                SetProperty(ref _selectedCategory, value);
+            }
+        }
     }
 
     public string SelectedDifficulty
     {
         get => _selectedDifficulty;
-        set => SetProperty(ref _selectedDifficulty, value);
+        set
+        {
+            if (value is not null)
+            {
+                SetProperty(ref _selectedDifficulty, value);
+            }
+        }
     }
 
-    public List<string> Categories { get; } = new()
+    public string SelectedMode
     {
-        "All",
-        "General",
-        "Science",
-        "History",
-        "Math",
-        "Geography",
-        "Literature",
-        "Technology",
-        "Art",
-        "Sports",
-        "Music"
-    };
+        get => _selectedMode;
+        set
+        {
+            if (value is not null && SetProperty(ref _selectedMode, value))
+            {
+                RaisePropertyChanged(nameof(Mode));
+                RaisePropertyChanged(nameof(ModeDescription));
+                RaisePropertyChanged(nameof(FiltersEnabled));
+            }
+        }
+    }
 
-    public List<string> Difficulties { get; } = new() { "Easy", "Medium", "Hard" };
+    public string SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            if (value is null || !SetProperty(ref _selectedLanguage, value))
+            {
+                return;
+            }
+
+            Localizer.Instance.SetLanguage(value);
+            new AppSettings { Language = Localizer.Instance.Language }.Save();
+        }
+    }
+
+    public GameMode Mode => Enum.TryParse<GameMode>(_selectedMode, out var mode) ? mode : GameMode.Classic;
+
+    public string ModeDescription => Localizer.Instance.Get("ModeHint_" + _selectedMode);
+
+    public bool FiltersEnabled => Mode != GameMode.Daily;
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        foreach (var item in Categories)
+        {
+            item.Label = Localizer.Instance.CategoryLabel(item.Value);
+        }
+
+        foreach (var item in Difficulties)
+        {
+            item.Label = Localizer.Instance.DifficultyLabel(item.Value);
+        }
+
+        foreach (var item in Modes)
+        {
+            item.Label = Localizer.Instance.ModeLabel(item.Value);
+        }
+
+        RaisePropertyChanged(nameof(ModeDescription));
+    }
 }

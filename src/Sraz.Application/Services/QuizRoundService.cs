@@ -5,27 +5,86 @@ namespace Sraz.Application.Services;
 
 public sealed class QuizRoundService : IQuizRoundService
 {
-    private readonly IQuestionProvider _provider;
+    private const int DailyQuestionCount = 10;
 
-    public QuizRoundService(IQuestionProvider provider)
+    private readonly IQuestionProvider _provider;
+    private readonly TimeProvider _timeProvider;
+
+    public QuizRoundService(IQuestionProvider provider, TimeProvider? timeProvider = null)
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<QuizRound> CreateRoundAsync(
         int numberOfQuestions = 10,
         string? category = null,
         string? difficulty = null,
+        GameMode mode = GameMode.Classic,
         CancellationToken cancellationToken = default)
     {
         var allQuestions = await _provider.GetQuestionsAsync(cancellationToken);
-        var filtered = allQuestions;
+
+        if (mode == GameMode.Daily)
+        {
+            return CreateDailyRound(allQuestions);
+        }
+
+        var filtered = Filter(allQuestions, category, difficulty);
+        var shuffled = filtered.OrderBy(_ => Guid.NewGuid()).ToList();
+
+        return mode switch
+        {
+            GameMode.Survival => new QuizRound
+            {
+                Mode = mode,
+                Questions = shuffled,
+                MaxMistakes = QuizRound.SurvivalMistakes
+            },
+            GameMode.TimeAttack => new QuizRound
+            {
+                Mode = mode,
+                Questions = shuffled,
+                TimeLimitSeconds = QuizRound.TimeAttackSeconds
+            },
+            _ => new QuizRound
+            {
+                Mode = mode,
+                Questions = shuffled.Take(Math.Min(Math.Max(numberOfQuestions, 1), shuffled.Count)).ToList()
+            }
+        };
+    }
+
+    private QuizRound CreateDailyRound(IReadOnlyList<Question> allQuestions)
+    {
+        var today = DateOnly.FromDateTime(_timeProvider.GetLocalNow().DateTime);
+        var random = new Random(today.Year * 10000 + today.Month * 100 + today.Day);
+
+        var ordered = allQuestions
+            .OrderBy(q => q.Text, StringComparer.Ordinal)
+            .ThenBy(q => q.Category, StringComparer.Ordinal)
+            .ToList();
+
+        for (var i = ordered.Count - 1; i > 0; i--)
+        {
+            var j = random.Next(i + 1);
+            (ordered[i], ordered[j]) = (ordered[j], ordered[i]);
+        }
+
+        return new QuizRound
+        {
+            Mode = GameMode.Daily,
+            Questions = ordered.Take(DailyQuestionCount).ToList()
+        };
+    }
+
+    private static IReadOnlyList<Question> Filter(IReadOnlyList<Question> questions, string? category, string? difficulty)
+    {
+        IEnumerable<Question> filtered = questions;
 
         if (!string.IsNullOrWhiteSpace(category) && !string.Equals(category, "All", StringComparison.OrdinalIgnoreCase))
         {
-            filtered = filtered
-                .Where(q => q.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            filtered = filtered.Where(q => q.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(difficulty))
@@ -33,32 +92,17 @@ public sealed class QuizRoundService : IQuizRoundService
             var normalizedDifficulty = NormalizeDifficulty(difficulty);
             if (normalizedDifficulty is not null)
             {
-                filtered = filtered
-                    .Where(q => q.Difficulty == normalizedDifficulty.Value)
-                    .ToList();
+                filtered = filtered.Where(q => q.Difficulty == normalizedDifficulty.Value);
             }
         }
 
-        if (filtered.Count == 0)
-        {
-            return new QuizRound { Questions = Array.Empty<Question>() };
-        }
-
-        var questions = filtered
-            .OrderBy(_ => Guid.NewGuid())
-            .Take(Math.Min(Math.Max(numberOfQuestions, 1), filtered.Count))
-            .ToList();
-
-        return new QuizRound { Questions = questions };
+        return filtered.ToList();
     }
 
     private static int? NormalizeDifficulty(string difficulty)
     {
-        return difficulty.Trim() switch
+        return difficulty.Trim().ToLowerInvariant() switch
         {
-            "Easy" => 1,
-            "Medium" => 2,
-            "Hard" => 3,
             "easy" => 1,
             "medium" => 2,
             "hard" => 3,

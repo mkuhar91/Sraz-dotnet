@@ -29,22 +29,7 @@
         <TextBlock Text="{Binding [BoardSize], Source={x:Static loc:Localizer.Instance}}"/>
         <TextBox Text="{Binding BoardSize, UpdateSourceTrigger=PropertyChanged}" Height="30" Margin="0,2,0,10"/>
 
-        <TextBlock Text="{Binding [Mode], Source={x:Static loc:Localizer.Instance}}"/>
-        <ComboBox ItemsSource="{Binding Modes}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                  SelectedValue="{Binding SelectedMode}" Margin="0,2,0,2"/>
-        <TextBlock Text="{Binding ModeDescription}" TextWrapping="Wrap" FontStyle="Italic" Margin="0,0,0,10"/>
-
-        <TextBlock Text="{Binding [Category], Source={x:Static loc:Localizer.Instance}}"/>
-        <ComboBox ItemsSource="{Binding Categories}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                  SelectedValue="{Binding SelectedCategory}" IsEnabled="{Binding FiltersEnabled}" Margin="0,2,0,10"/>
-
-        <TextBlock Text="{Binding [Difficulty], Source={x:Static loc:Localizer.Instance}}"/>
-        <ComboBox ItemsSource="{Binding Difficulties}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                  SelectedValue="{Binding SelectedDifficulty}" IsEnabled="{Binding FiltersEnabled}" Margin="0,2,0,18"/>
-
-        <Button Content="{Binding [StartGame], Source={x:Static loc:Localizer.Instance}}" Height="40" Margin="0,0,0,8" Click="Start_Click"/>
-        <Button Content="{Binding [Board], Source={x:Static loc:Localizer.Instance}}" Height="40" Margin="0,0,0,8" Click="Board_Click"/>
-        <Button Content="{Binding [Leaderboard], Source={x:Static loc:Localizer.Instance}}" Height="40" Margin="0,0,0,8" Click="Leaderboard_Click"/>
+        <Button Content="{Binding [StartGame], Source={x:Static loc:Localizer.Instance}}" Height="40" Margin="0,8,0,8" Click="Board_Click"/>
         <Button Content="{Binding [Exit], Source={x:Static loc:Localizer.Instance}}" Height="40" Click="Exit_Click"/>
     </StackPanel>
     </ScrollViewer>

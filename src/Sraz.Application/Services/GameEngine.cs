@@ -25,6 +25,9 @@ public sealed class GameEngine : IGameEngine
     public Player CurrentPlayer => _gameStarted ? Players[_currentPlayerIndex] : throw new InvalidOperationException("A board game has not started.");
     public Player? Winner { get; private set; }
     public GameState State { get; private set; } = GameState.InProgress;
+    public int? BoardSeed { get; private set; }
+    public int CurrentPlayerIndex => _currentPlayerIndex;
+    public bool IsStarted => _gameStarted;
 
     public void StartNewSession(string playerName)
     {
@@ -84,29 +87,35 @@ public sealed class GameEngine : IGameEngine
             throw new ArgumentException("Enter between one and four player names.", nameof(playerNames));
         }
 
-        _random = seed.HasValue ? new Random(seed.Value) : new Random();
-        Board = _boardFactory.Create(boardSize, seed);
-        var names = playerNames.Select(name => name.Trim()).ToList();
-        var npcAdded = names.Count == 1;
-        if (npcAdded)
+        var players = playerNames.Select(name => (Name: name.Trim(), IsNpc: false)).ToList();
+        if (players.Count == 1)
         {
-            names.Add("NPC");
+            players.Add(("NPC", true));
         }
 
-        var cornerIndices = names.Count == 2
-            ? TwoPlayerCorners
-            : Enumerable.Range(0, names.Count).ToArray();
-        var players = new List<Player>(names.Count);
+        StartGame(players, boardSize, seed);
+    }
 
-        for (var index = 0; index < names.Count; index++)
+    public void StartGame(IReadOnlyList<(string Name, bool IsNpc)> players, int boardSize = Board.DefaultSize, int? seed = null)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        if (players.Count is < 1 or > 4 || players.Any(player => string.IsNullOrWhiteSpace(player.Name)))
         {
-            var player = new Player
-            {
-                Name = names[index],
-                Index = index,
-                Color = PlayerColors[index],
-                IsNpc = npcAdded && index == 1
-            };
+            throw new ArgumentException("Enter between one and four player names.", nameof(players));
+        }
+
+        var effectiveSeed = seed ?? Random.Shared.Next();
+        BoardSeed = effectiveSeed;
+        _random = new Random(effectiveSeed);
+        Board = _boardFactory.Create(boardSize, effectiveSeed);
+        var cornerIndices = players.Count == 2
+            ? TwoPlayerCorners
+            : Enumerable.Range(0, players.Count).ToArray();
+        var created = new List<Player>(players.Count);
+
+        for (var index = 0; index < players.Count; index++)
+        {
+            var player = CreatePlayer(players[index], index);
             foreach (var (row, column) in Board.GetStartingCells(cornerIndices[index]))
             {
                 var pawn = new Pawn { OwnerIndex = index };
@@ -114,16 +123,71 @@ public sealed class GameEngine : IGameEngine
                 Board.PlacePawn(pawn, row, column);
             }
 
-            players.Add(player);
+            created.Add(player);
         }
 
-        Players = players;
+        Players = created;
         Winner = null;
         State = GameState.InProgress;
         _currentPlayerIndex = 0;
         _gameStarted = true;
         BeginTurn();
     }
+
+    /// <summary>Rebuilds a game from persisted state. The board is regenerated from <paramref name="seed"/>.</summary>
+    public void RestoreGame(
+        IReadOnlyList<(string Name, bool IsNpc)> players,
+        int boardSize,
+        int seed,
+        IReadOnlyList<PawnState> pawns,
+        int currentPlayerIndex,
+        GameState state,
+        int? winnerIndex)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        ArgumentNullException.ThrowIfNull(pawns);
+        if (players.Count is < 1 or > 4 || currentPlayerIndex < 0 || currentPlayerIndex >= players.Count ||
+            (winnerIndex.HasValue && (winnerIndex < 0 || winnerIndex >= players.Count)))
+        {
+            throw new ArgumentException("The saved game state is invalid.", nameof(players));
+        }
+
+        var board = _boardFactory.Create(boardSize, seed);
+        var restored = players.Select((player, index) => CreatePlayer(player, index)).ToList();
+        foreach (var saved in pawns)
+        {
+            if (saved.OwnerIndex < 0 || saved.OwnerIndex >= restored.Count)
+            {
+                throw new ArgumentException("The saved game state is invalid.", nameof(pawns));
+            }
+
+            var pawn = new Pawn { Id = saved.Id, OwnerIndex = saved.OwnerIndex };
+            board.RestorePawn(pawn, saved.Row, saved.Column, saved.IsCaptured);
+            if (saved.HasActedThisTurn)
+            {
+                pawn.MarkActedThisTurn();
+            }
+
+            restored[saved.OwnerIndex].Pawns.Add(pawn);
+        }
+
+        BoardSeed = seed;
+        _random = new Random(seed);
+        Board = board;
+        Players = restored;
+        State = state;
+        Winner = winnerIndex.HasValue ? restored[winnerIndex.Value] : null;
+        _currentPlayerIndex = currentPlayerIndex;
+        _gameStarted = true;
+    }
+
+    private static Player CreatePlayer((string Name, bool IsNpc) setup, int index) => new()
+    {
+        Name = setup.Name,
+        Index = index,
+        Color = PlayerColors[index],
+        IsNpc = setup.IsNpc
+    };
 
     public void BeginTurn()
     {

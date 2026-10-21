@@ -55,6 +55,21 @@ public sealed class Board
         cell.Occupant = pawn;
     }
 
+    public void RestorePawn(Pawn pawn, int row, int column, bool isCaptured)
+    {
+        ArgumentNullException.ThrowIfNull(pawn);
+        if (!isCaptured)
+        {
+            PlacePawn(pawn, row, column);
+            return;
+        }
+
+        GetCell(row, column);
+        pawn.Row = row;
+        pawn.Column = column;
+        pawn.IsCaptured = true;
+    }
+
     public void MovePawn(Pawn pawn, BoardCell target)
     {
         ArgumentNullException.ThrowIfNull(pawn);

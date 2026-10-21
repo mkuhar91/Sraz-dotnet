@@ -1,9 +1,136 @@
 @page "/"
 @namespace Sraz.UI.Blazor.Pages
+@using Sraz.Application.Rooms
+@inject IRoomManager Rooms
+@inject IPlayerIdentity Identity
+@inject NicknameStore Nicknames
+@inject NavigationManager Navigation
 
-<PageTitle>Sraz</PageTitle>
+<PageTitle>@Texts.AppName</PageTitle>
 
-<main>
-    <h1>Sraz</h1>
-    <p>Blazor Server aplikacija je pokrenuta.</p>
+<main class="home">
+    <h1>@Texts.AppName</h1>
+    <p class="tagline">@Texts.Tagline</p>
+
+    @if (!string.IsNullOrEmpty(NoticeText))
+    {
+        <p class="toast info" role="status">@NoticeText</p>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="toast error" role="alert">@_error</p>
+    }
+
+    <div class="card">
+        <label for="nickname">@Texts.Nickname</label>
+        <input id="nickname" maxlength="24" placeholder="@Texts.NicknamePlaceholder" @bind="_nickname" @bind:event="oninput" autocomplete="nickname" />
+
+        <button type="button" class="primary" disabled="@_busy" @onclick="CreateAsync">@Texts.CreateRoom</button>
+    </div>
+
+    <div class="card">
+        <h2>@Texts.JoinRoomHeading</h2>
+        <label for="room-code">@Texts.JoinCode</label>
+        <input id="room-code" maxlength="8" placeholder="@Texts.JoinCodePlaceholder" @bind="_code" @bind:event="oninput" autocapitalize="characters" />
+        <button type="button" disabled="@_busy" @onclick="JoinAsync">@Texts.Join</button>
+    </div>
 </main>
+
+@code {
+    private string _nickname = string.Empty;
+    private string _code = string.Empty;
+    private string? _error;
+    private bool _busy;
+    private Guid _playerId;
+
+    [SupplyParameterFromQuery(Name = "notice")] public string? Notice { get; set; }
+    [SupplyParameterFromQuery(Name = "code")] public string? PrefilledCode { get; set; }
+
+    private string NoticeText => Texts.Notice(Notice);
+
+    protected override void OnInitialized()
+    {
+        _playerId = Identity.GetOrCreatePlayerId();
+        _nickname = Nicknames.Get(_playerId) ?? string.Empty;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(_code) && !string.IsNullOrWhiteSpace(PrefilledCode))
+        {
+            _code = PrefilledCode.Trim();
+        }
+    }
+
+    private bool TryGetNickname(out string nickname)
+    {
+        nickname = GameRoom.NormalizeName(_nickname) ?? string.Empty;
+        if (nickname.Length == 0)
+        {
+            _error = Texts.NicknameInvalid;
+            return false;
+        }
+
+        Nicknames.Set(_playerId, nickname);
+        _error = null;
+        return true;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_busy || !TryGetNickname(out var nickname))
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Rooms.CreateRoomAsync(_playerId, nickname);
+            if (result.Success)
+            {
+                Navigation.NavigateTo($"/lobby/{result.Value!.Code}");
+                return;
+            }
+
+            _error = Texts.Error(result.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task JoinAsync()
+    {
+        if (_busy || !TryGetNickname(out var nickname))
+        {
+            return;
+        }
+
+        var code = _code.Trim().ToUpperInvariant();
+        if (code.Length == 0)
+        {
+            _error = Texts.CodeRequired;
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Rooms.JoinAsync(code, _playerId, nickname);
+            if (!result.Success)
+            {
+                _error = Texts.Error(result.Error);
+                return;
+            }
+
+            var room = result.Value!;
+            Navigation.NavigateTo(room.State == RoomState.Lobby ? $"/lobby/{room.Code}" : $"/game/{room.Code}");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

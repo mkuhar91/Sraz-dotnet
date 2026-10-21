@@ -11,7 +11,9 @@ public enum RoomEventType
     PawnCaptured,
     TurnChanged,
     GameFinished,
-    ActionResolved
+    ActionResolved,
+    SettingsChanged,
+    QuestionStarted
 }
 
 /// <summary>Notification published by a room. Carries no question or answer data.</summary>

@@ -21,6 +21,7 @@ builder.Services.AddScoped<QuestionSeedImporter>(services =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPlayerIdentity, CookiePlayerIdentity>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<NicknameStore>();
 builder.Services.AddSingleton<IRoomStore, EfRoomStore>();
 builder.Services.AddSingleton<CachedQuestionProvider>();
 builder.Services.AddSingleton<INpcStrategy>(_ => new RandomNpcStrategy());

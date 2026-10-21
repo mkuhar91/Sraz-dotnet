@@ -1,0 +1,43 @@
+@using Sraz.Application.Rooms
+@inject TimeProvider Time
+
+<div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="question-title">
+        <header>
+            <h2 id="question-title">@Texts.Question</h2>
+            <span class="theme-tag">@Question.Category</span>
+        </header>
+        <Countdown ExpiresAtUtc="Question.ExpiresAtUtc" OnExpired="HandleExpired" />
+        <p class="question-text">@Question.Text</p>
+        @if (!string.IsNullOrEmpty(Question.ImagePath))
+        {
+            <img class="question-image" src="@Question.ImagePath" alt="" />
+        }
+        <div class="options">
+            @for (var i = 0; i < Question.Options.Count; i++)
+            {
+                var index = i;
+                <button type="button" class="option" disabled="@IsLocked" @onclick="() => Select(index)">@Question.Options[i]</button>
+            }
+        </div>
+        @if (IsExpired)
+        {
+            <p class="expired" role="status">@Texts.TimeUp</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public QuestionDto Question { get; set; } = default!;
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Raised with the chosen option index only; the client never knows the correct answer.</summary>
+    [Parameter] public EventCallback<int> OnAnswer { get; set; }
+    [Parameter] public EventCallback OnExpired { get; set; }
+
+    private Task HandleExpired() => OnExpired.InvokeAsync();
+
+    private bool IsExpired => Time.GetUtcNow() >= Question.ExpiresAtUtc;
+    private bool IsLocked => Disabled || IsExpired;
+
+    private Task Select(int index) => IsLocked ? Task.CompletedTask : OnAnswer.InvokeAsync(index);
+}

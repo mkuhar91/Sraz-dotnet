@@ -1,0 +1,27 @@
+@using Sraz.Domain.Models
+<div class="@CssClass" role="gridcell" data-row="@Row" data-column="@Column" aria-label="@Label" @onclick="HandleClick">
+    @if (HasPawn)
+    {
+        <Pawn Color="@PawnColor" Label="@PawnLabel" Acted="@PawnActed" Selected="@PawnSelected" Clickable="@PawnClickable" OnClick="OnPawnClick" />
+    }
+</div>
+
+@code {
+    [Parameter] public int Row { get; set; }
+    [Parameter] public int Column { get; set; }
+    [Parameter] public QuestionTheme Theme { get; set; }
+    [Parameter] public bool IsTarget { get; set; }
+    [Parameter] public bool HasPawn { get; set; }
+    [Parameter] public string PawnColor { get; set; } = "#555555";
+    [Parameter] public string? PawnLabel { get; set; }
+    [Parameter] public bool PawnActed { get; set; }
+    [Parameter] public bool PawnSelected { get; set; }
+    [Parameter] public bool PawnClickable { get; set; }
+    [Parameter] public EventCallback OnPawnClick { get; set; }
+    [Parameter] public EventCallback OnTargetClick { get; set; }
+
+    private string CssClass => $"cell theme-{Theme.ToString().ToLowerInvariant()}" + (IsTarget ? " target" : string.Empty);
+    private string Label => Texts.Theme(Theme);
+
+    private Task HandleClick() => IsTarget ? OnTargetClick.InvokeAsync() : Task.CompletedTask;
+}

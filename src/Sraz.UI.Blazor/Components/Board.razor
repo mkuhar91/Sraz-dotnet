@@ -1,0 +1,47 @@
+@using Sraz.Application.Rooms
+<div class="board" style="--n:@View.BoardSize" role="grid" aria-label="@Texts.Board">
+    @for (var row = 0; row < View.BoardSize; row++)
+    {
+        for (var column = 0; column < View.BoardSize; column++)
+        {
+            var r = row;
+            var c = column;
+            var pawn = PawnAt(r, c);
+            var target = TargetAt(r, c);
+            <Cell Row="r" Column="c" Theme="View.Themes[r * View.BoardSize + c]"
+                  IsTarget="target is not null"
+                  HasPawn="pawn is not null"
+                  PawnColor="@ColorOf(pawn)"
+                  PawnLabel="@LabelOf(pawn)"
+                  PawnActed="pawn?.HasActedThisTurn == true"
+                  PawnSelected="pawn is not null && pawn.Id == SelectedPawnId"
+                  PawnClickable="pawn is not null && CanSelect(pawn)"
+                  OnPawnClick="@(() => OnPawnSelected.InvokeAsync(pawn!.Id))"
+                  OnTargetClick="@(() => OnMoveSelected.InvokeAsync(target!))" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BoardViewDto View { get; set; } = default!;
+    [Parameter] public Guid? SelectedPawnId { get; set; }
+    [Parameter] public EventCallback<Guid> OnPawnSelected { get; set; }
+    [Parameter] public EventCallback<MoveTargetDto> OnMoveSelected { get; set; }
+
+    private PawnViewDto? PawnAt(int row, int column) =>
+        View.Pawns.FirstOrDefault(pawn => !pawn.IsCaptured && pawn.Row == row && pawn.Column == column);
+
+    private MoveTargetDto? TargetAt(int row, int column) =>
+        SelectedPawnId is { } selected
+            ? View.AllowedMoves.FirstOrDefault(move => move.PawnId == selected && move.Row == row && move.Column == column)
+            : null;
+
+    private bool CanSelect(PawnViewDto pawn) =>
+        pawn.OwnerIndex == View.ViewerIndex && !pawn.HasActedThisTurn && View.AllowedMoves.Any(move => move.PawnId == pawn.Id);
+
+    private string ColorOf(PawnViewDto? pawn) =>
+        pawn is not null && pawn.OwnerIndex < View.Players.Count ? View.Players[pawn.OwnerIndex].Color : "#555555";
+
+    private string? LabelOf(PawnViewDto? pawn) =>
+        pawn is not null && pawn.OwnerIndex < View.Players.Count ? View.Players[pawn.OwnerIndex].Name : null;
+}

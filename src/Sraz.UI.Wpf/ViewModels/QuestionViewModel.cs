@@ -34,7 +34,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
     private string _feedbackTitle = string.Empty;
     private string _feedbackExplanation = string.Empty;
     private bool _feedbackVisible;
-    private string _textAnswer = string.Empty;
     private bool _disposed;
 
     public QuestionViewModel(QuizRound round)
@@ -105,18 +104,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
 
     public Visibility ImageVisible => ImagePath is null ? Visibility.Collapsed : Visibility.Visible;
 
-    public bool IsTextInput => _round.CurrentQuestion?.Type == QuestionType.TextInput;
-
-    public Visibility TextInputVisible => IsTextInput ? Visibility.Visible : Visibility.Collapsed;
-
-    public Visibility OptionsVisible => IsTextInput ? Visibility.Collapsed : Visibility.Visible;
-
-    public string TextAnswer
-    {
-        get => _textAnswer;
-        set => SetProperty(ref _textAnswer, value);
-    }
-
     public bool CanUseFiftyFifty => CanAnswer && _round.CanUseFiftyFifty;
 
     public bool CanUseExtraTime => CanAnswer && _round.CanUseExtraTime;
@@ -129,10 +116,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
 
     public string SkipLabel => Localizer.Instance.Get("LifelineSkip");
 
-    public string SubmitLabel => Localizer.Instance.Get("Submit");
-
-    public string TypeAnswerLabel => Localizer.Instance.Get("TypeAnswer");
-
     public void StartTimer() => _timer.Start();
 
     public Task SelectAnswerAsync(OptionItem option)
@@ -143,16 +126,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
         }
 
         return ResolveAsync(q => _round.SubmitAnswer(option.Index), false);
-    }
-
-    public Task SubmitTextAsync()
-    {
-        if (!CanAnswer || !IsTextInput)
-        {
-            return Task.CompletedTask;
-        }
-
-        return ResolveAsync(q => _round.SubmitTextAnswer(TextAnswer), false);
     }
 
     public void UseFiftyFifty()
@@ -316,8 +289,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
         QuestionText = question.Text;
         Header = loc.Format("QuestionHeader", loc.CategoryLabel(question.Category), loc.DifficultyLabel(DifficultyName(question.Difficulty)));
         ImagePath = question.ImagePath;
-        TextAnswer = string.Empty;
-
         Options.Clear();
         for (var i = 0; i < question.Options.Count; i++)
         {
@@ -332,9 +303,6 @@ public sealed class QuestionViewModel : BindableBase, IDisposable
         RaisePropertyChanged(nameof(TimeLeftText));
         RaisePropertyChanged(nameof(ImagePath));
         RaisePropertyChanged(nameof(ImageVisible));
-        RaisePropertyChanged(nameof(IsTextInput));
-        RaisePropertyChanged(nameof(TextInputVisible));
-        RaisePropertyChanged(nameof(OptionsVisible));
         CanAnswer = true;
         UpdateFooter();
     }

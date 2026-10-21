@@ -25,9 +25,6 @@ internal sealed class QuestionRecord
     [JsonPropertyName("correctOptionIndex")]
     public int CorrectOptionIndex { get; set; }
 
-    [JsonPropertyName("acceptedAnswers")]
-    public List<string>? AcceptedAnswers { get; set; }
-
     [JsonPropertyName("explanation")]
     public string? Explanation { get; set; } = string.Empty;
 }

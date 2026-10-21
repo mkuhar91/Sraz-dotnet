@@ -48,34 +48,9 @@ public sealed class JsonQuestionProvider(string filePath) : IQuestionProvider
 
         var type = ParseType(record.Type);
         var options = record.Options ?? new List<string>();
-        var accepted = (record.AcceptedAnswers ?? new List<string>())
-            .Where(a => !string.IsNullOrWhiteSpace(a))
-            .ToList();
-
-        switch (type)
+        if (options.Count < 2 || !IsValidIndex(record.CorrectOptionIndex, options.Count))
         {
-            case QuestionType.TextInput:
-                if (accepted.Count == 0)
-                {
-                    return null;
-                }
-
-                options = new List<string>();
-                break;
-            case QuestionType.TrueFalse:
-                if (options.Count != 2 || !IsValidIndex(record.CorrectOptionIndex, options.Count))
-                {
-                    return null;
-                }
-
-                break;
-            default:
-                if (options.Count < 2 || !IsValidIndex(record.CorrectOptionIndex, options.Count))
-                {
-                    return null;
-                }
-
-                break;
+            return null;
         }
 
         return new Question
@@ -86,8 +61,7 @@ public sealed class JsonQuestionProvider(string filePath) : IQuestionProvider
             Text = record.Text,
             ImagePath = ResolveImage(record.ImagePath, baseDirectory),
             Options = options,
-            CorrectOptionIndex = type == QuestionType.TextInput ? -1 : record.CorrectOptionIndex,
-            AcceptedAnswers = accepted,
+            CorrectOptionIndex = record.CorrectOptionIndex,
             Explanation = record.Explanation ?? string.Empty
         };
     }
@@ -97,7 +71,6 @@ public sealed class JsonQuestionProvider(string filePath) : IQuestionProvider
         return type?.Trim().ToLowerInvariant() switch
         {
             "truefalse" or "true_false" or "boolean" => QuestionType.TrueFalse,
-            "textinput" or "text" => QuestionType.TextInput,
             _ => QuestionType.MultipleChoice
         };
     }

@@ -1,0 +1,55 @@
+@implements IDisposable
+@inject TimeProvider Time
+
+<div class="countdown @(Remaining <= 5 ? "urgent" : string.Empty)" role="timer" aria-live="off">
+    <div class="countdown-bar"><div class="countdown-fill" style="width:@Percent%"></div></div>
+    <span class="countdown-text">@Remaining @Texts.Seconds</span>
+</div>
+
+@code {
+    private ITimer? _timer;
+    private DateTimeOffset _raisedFor;
+    private bool _disposed;
+
+    /// <summary>Server-side expiry time of the question; the server clock is the single source of truth.</summary>
+    [Parameter] public DateTimeOffset ExpiresAtUtc { get; set; }
+    [Parameter] public int TotalSeconds { get; set; } = 30;
+    [Parameter] public EventCallback OnExpired { get; set; }
+
+    private int Remaining => (int)Math.Clamp(Math.Ceiling((ExpiresAtUtc - Time.GetUtcNow()).TotalSeconds), 0, TotalSeconds);
+    private int Percent => TotalSeconds <= 0 ? 0 : Remaining * 100 / TotalSeconds;
+
+    protected override void OnInitialized() =>
+        _timer = Time.CreateTimer(_ => _ = TickAsync(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
+    private async Task TickAsync()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                if (Remaining == 0 && _raisedFor != ExpiresAtUtc)
+                {
+                    _raisedFor = ExpiresAtUtc;
+                    await OnExpired.InvokeAsync();
+                }
+
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer?.Dispose();
+    }
+}

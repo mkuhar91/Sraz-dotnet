@@ -1,0 +1,10 @@
+@using Sraz.Domain.Models
+<section class="legend" aria-label="@Texts.Legend">
+    <h3>@Texts.Legend</h3>
+    <ul>
+        @foreach (var theme in Enum.GetValues<QuestionTheme>())
+        {
+            <li><span class="swatch theme-@theme.ToString().ToLowerInvariant()"></span>@Texts.Theme(theme)</li>
+        }
+    </ul>
+</section>

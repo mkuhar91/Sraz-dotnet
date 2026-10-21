@@ -1,0 +1,68 @@
+@using Sraz.Application.Rooms
+@inject TimeProvider Time
+
+<div class="modal-backdrop">
+    <div class="modal duel" role="dialog" aria-modal="true" aria-labelledby="duel-title">
+        <header>
+            <h2 id="duel-title">@Texts.Duel</h2>
+            <span class="theme-tag">@Question.Category</span>
+        </header>
+        <div class="duel-progress" aria-label="@Texts.QuestionOf(Question.Number, Question.Total)">
+            @for (var i = 1; i <= Question.Total; i++)
+            {
+                <span class="step @StepClass(i)">@i</span>
+            }
+            <span class="duel-count">@Texts.QuestionOf(Question.Number, Question.Total)</span>
+        </div>
+        @if (Result is { IsCompleted: true })
+        {
+            <div class="duel-result" role="status">
+                <h3>@Texts.DuelOutcome</h3>
+                <p>@(Result.WasCorrect ? Texts.DuelWon : Texts.DuelAborted) @Texts.Outcome(Result.Outcome)</p>
+                <button type="button" class="primary" @onclick="OnClose">@Texts.Dismiss</button>
+            </div>
+        }
+        else
+        {
+            <Countdown ExpiresAtUtc="Question.ExpiresAtUtc" OnExpired="HandleExpired" />
+            <p class="question-text">@Question.Text</p>
+            @if (!string.IsNullOrEmpty(Question.ImagePath))
+            {
+                <img class="question-image" src="@Question.ImagePath" alt="" />
+            }
+            <div class="options">
+                @for (var i = 0; i < Question.Options.Count; i++)
+                {
+                    var index = i;
+                    <button type="button" class="option" disabled="@IsLocked" @onclick="() => Select(index)">@Question.Options[i]</button>
+                }
+            </div>
+            @if (IsExpired)
+            {
+                <p class="expired" role="status">@Texts.TimeUp</p>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public QuestionDto Question { get; set; } = default!;
+    /// <summary>Set once the duel is over so the outcome can be shown before the dialog closes.</summary>
+    [Parameter] public AnswerResultDto? Result { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<int> OnAnswer { get; set; }
+    [Parameter] public EventCallback OnExpired { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task HandleExpired() => OnExpired.InvokeAsync();
+
+    private bool IsExpired => Time.GetUtcNow() >= Question.ExpiresAtUtc;
+    private bool IsLocked => Disabled || IsExpired;
+
+    private string StepClass(int step) =>
+        step < Question.Number || (Result is { IsCompleted: true, WasCorrect: true }) ? "done"
+        : step == Question.Number ? (Result is { IsCompleted: true } ? "failed" : "current")
+        : string.Empty;
+
+    private Task Select(int index) => IsLocked ? Task.CompletedTask : OnAnswer.InvokeAsync(index);
+}

@@ -1,0 +1,20 @@
+@using Sraz.Application.Rooms
+<section class="game-over" role="status">
+    <h2>@Texts.GameOver</h2>
+    @if (Winner is not null)
+    {
+        <p class="winner">@Texts.WinnerIs(Winner.Name)</p>
+    }
+    else
+    {
+        <p>@Texts.NoWinner</p>
+    }
+    <button type="button" class="primary" @onclick="OnNewGame">@Texts.NewGame</button>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public BoardViewDto View { get; set; } = default!;
+    [Parameter] public EventCallback OnNewGame { get; set; }
+
+    private PlayerViewDto? Winner => View.WinnerIndex is { } index && index >= 0 && index < View.Players.Count ? View.Players[index] : null;
+}

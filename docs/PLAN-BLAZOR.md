@@ -146,3 +146,27 @@ Samo serverska logika, bez UI-ja (UI je faza 3, odspajanje/NPC preuzimanje i lje
 - Sprema se nakon svake promjene (ulazak/izlazak, NPC, start, otvaranje pitanja, ishod poteza, promjena reda, kraj igre). Jedan red po sobi, upsert u jednom `SaveChanges` (jedna transakcija).
 - Ako zapis ne uspije, radnja se odbija (`PersistenceFailed`), a memorijsko stanje se vraća na prethodni snapshot. Ako zapis ne uspije pri istjecanju vremena, pitanje ostaje otvoreno s novim mjeračem od 30 s.
 - Pri startu `RoomManager.LoadAsync` učitava sobe `Lobby`/`InProgress`; pitanje u tijeku računa se kao netočno (kod dvoboja prekida dvoboj) i taj ishod se sprema.
+
+## 16. Status faze 3: UI (implementirano)
+
+**Stranice:** `Index` (nadimak, stvaranje sobe, pridruživanje kodom), `Lobby` (`/lobby/{kod}`), `Game` (`/game/{kod}`, na kraju igre prikazuje panel `GameOver` s gumbom "Nova igra").
+**Komponente:** `Board`, `Cell`, `Pawn`, `QuestionDialog`, `DuelDialog`, `Countdown`, `Legend`, `GameOver`.
+
+- Stranice se pretplaćuju na `GameRoom.Subscribe`, osvježavaju se preko `InvokeAsync` i u `Dispose` odjavljuju pretplatu.
+- Klijent dobiva samo DTO-ove: `BoardViewDto` (teme polja, pijuni, igrači, dopušteni potezi gledatelja, bez ikakvih odgovora) i `QuestionDto`. Šalje se samo indeks odgovora preko `AnswerAsync`.
+- Dodano u fazi 2 API: `GameRoom.GetViewAsync` (read-only prikaz), `GameRoom.SetBoardSizeAsync` (samo domaćin, samo u lobbyju, 6 do 15 u UI-u), događaji `SettingsChanged` i `QuestionStarted`. Pravila igre nisu mijenjana.
+- Odbrojavanje se računa iz `QuestionDto.ExpiresAtUtc` i serverskog `TimeProvider`-a; server i dalje računa istek kao netočan odgovor.
+- Svi tekstovi su u `Localization/Texts.cs` (priprema za fazu 4). Stilovi su u `wwwroot/css/site.css`.
+- Greške i prekid (soba ne postoji, igra završena, nisi član) vode na početnu s porukom (`/?notice=...`).
+- Nije u ovoj fazi: odspajanje/NPC preuzimanje, ljestvica, završna lokalizacija (faza 4).
+- Testovi: bUnit u `tests/Sraz.Tests` (`BlazorComponentTests`, `BlazorPageTests`).
+
+### Ručno testiranje s dva preglednika
+
+1. `docker compose up --build`, otvori `http://localhost:8080` (ili port iz `docker-compose.yml`).
+2. Preglednik A: upiši nadimak, "Stvori sobu"; kopiraj kod sobe.
+3. Preglednik B (drugi preglednik ili anonimni prozor, jer se `PlayerId` čuva u cookieju): upiši drugi nadimak, unesi kod, "Pridruži se". Lobby u A se mora osvježiti bez ponovnog učitavanja.
+4. U A promijeni veličinu ploče, dodaj NPC (kad je soba puna gumb je onemogućen), "Pokreni igru".
+5. Na igraču koji je na redu klikni vlastitog pijuna: dopuštena polja dobiju crni okvir. Klikni polje, odgovori na pitanje (odbrojavanje od 30 s). Drugi igrač vidi "Igrač X odgovara na pitanje".
+6. Pokušaj pridruživanje s trećeg preglednika nakon početka igre i s krivim kodom: očekuje se poruka o grešci.
+7. Provjeri na mobitelu (ili u responzivnom načinu preglednika) da je ploča čitljiva i klikabilna.

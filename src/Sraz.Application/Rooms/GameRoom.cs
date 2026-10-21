@@ -82,6 +82,36 @@ public sealed class GameRoom : IDisposable
     public Task<RoomSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default) =>
         RunLockedAsync(_ => Task.FromResult(Capture()), cancellationToken);
 
+    /// <summary>Read-only view for rendering. <paramref name="viewerId"/> only determines which moves are offered.</summary>
+    public Task<BoardViewDto> GetViewAsync(Guid? viewerId = null, CancellationToken cancellationToken = default) =>
+        RunLockedAsync(_ => Task.FromResult(BuildView(viewerId)), cancellationToken);
+
+    /// <summary>Changes the board size while the room is still in the lobby. Host only.</summary>
+    public Task<RoomResult> SetBoardSizeAsync(Guid requesterId, int boardSize, CancellationToken cancellationToken = default) =>
+        RunLockedAsync(async events =>
+        {
+            if (CheckHostInLobby(requesterId) is { } error)
+            {
+                return RoomResult.Fail(error);
+            }
+
+            if (boardSize is <= 5 or > MaxBoardSize)
+            {
+                return RoomResult.Fail(RoomError.InvalidBoardSize);
+            }
+
+            var before = Capture();
+            _boardSize = boardSize;
+            Touch();
+            if (!await TryPersistAsync(before, null, cancellationToken))
+            {
+                return RoomResult.Fail(RoomError.PersistenceFailed);
+            }
+
+            events.Add(new RoomEvent(RoomEventType.SettingsChanged, Code));
+            return RoomResult.Ok;
+        }, cancellationToken);
+
     /// <summary>The question currently awaiting an answer from the given player, if any.</summary>
     public Task<QuestionDto?> GetPendingQuestionAsync(Guid playerId, CancellationToken cancellationToken = default) =>
         RunLockedAsync(_ =>
@@ -395,6 +425,7 @@ public sealed class GameRoom : IDisposable
                 return RoomResult<QuestionDto>.Fail(RoomError.PersistenceFailed);
             }
 
+            events.Add(new RoomEvent(RoomEventType.QuestionStarted, Code, index));
             return RoomResult<QuestionDto>.Ok(ToDto(_pending));
         }, cancellationToken);
 
@@ -657,6 +688,61 @@ public sealed class GameRoom : IDisposable
     private void Touch() => Interlocked.Exchange(ref _lastActivityTicks, _services.Time.GetUtcNow().UtcTicks);
 
     private GameEngine NewEngine() => new(_services.Questions);
+
+    private BoardViewDto BuildView(Guid? viewerId)
+    {
+        var viewerIndex = viewerId is { } id ? HumanIndex(id) : -1;
+        var started = _engine.IsStarted;
+        var board = started ? _engine.Board : new BoardFactory().Create(_boardSize, _seed);
+        var themes = new List<QuestionTheme>(board.Size * board.Size);
+        for (var row = 0; row < board.Size; row++)
+        {
+            for (var column = 0; column < board.Size; column++)
+            {
+                themes.Add(board.Cells[row, column].Theme);
+            }
+        }
+
+        var players = new List<PlayerViewDto>(_players.Count);
+        for (var index = 0; index < _players.Count; index++)
+        {
+            var player = _players[index];
+            var engineColor = started ? _engine.Players[index].Color : string.Empty;
+            var remaining = started ? _engine.Players[index].ActivePawns.Count : 0;
+            players.Add(new PlayerViewDto(index, player.Id, player.Name, engineColor, player.IsNpc, player.Id == _hostId, remaining));
+        }
+
+        var pawns = started
+            ? _engine.Players.SelectMany(player => player.Pawns)
+                .Select(pawn => new PawnViewDto(pawn.Id, pawn.OwnerIndex, pawn.Row, pawn.Column, pawn.IsCaptured, pawn.HasActedThisTurn))
+                .ToList()
+            : new List<PawnViewDto>();
+
+        var moves = new List<MoveTargetDto>();
+        if (started && State == RoomState.InProgress && _pending is null && viewerIndex >= 0 && _engine.CurrentPlayerIndex == viewerIndex)
+        {
+            foreach (var pawn in _engine.Players[viewerIndex].ActivePawns)
+            {
+                var available = _engine.GetAvailableMoves(pawn);
+                foreach (var direction in Enum.GetValues<Direction>())
+                {
+                    var target = board.GetNeighbor(pawn.Row, pawn.Column, direction);
+                    if (target is not null && available.Contains(target))
+                    {
+                        moves.Add(new MoveTargetDto(pawn.Id, direction, target.Row, target.Column));
+                    }
+                }
+            }
+        }
+
+        return new BoardViewDto(
+            Code, State, board.Size, themes, players, pawns,
+            started ? _engine.CurrentPlayerIndex : -1,
+            _engine.Winner?.Index,
+            viewerIndex,
+            _pending is not null,
+            moves);
+    }
 
     private RoomSnapshot Capture()
     {

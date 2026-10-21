@@ -117,3 +117,32 @@ Sraz.Tests           (+ novi testovi)
 | 5 | Testovi, dokumentacija, završni Docker i provjera na dva uređaja |
 
 Svaka faza ide u zaseban pull request.
+
+## 15. Status faze 2: sobe i snapshoti (implementirano)
+
+Samo serverska logika, bez UI-ja (UI je faza 3, odspajanje/NPC preuzimanje i ljestvica faza 4).
+
+**Slojevi**
+- `Sraz.Application/Rooms`: `GameRoom`, `RoomManager` / `IRoomManager`, `RoomSnapshot`, `IRoomStore`, `QuestionDto`, `RoomEvent`.
+- `Sraz.Infrastructure`: `EfRoomStore` (zapis u `GameRooms` + `GameSnapshots`) i `CachedQuestionProvider` (singleton-siguran čitač pitanja iz baze).
+- `Sraz.UI.Blazor`: DI registracija, `CookiePlayerIdentity` (`PlayerId` u cookieju `sraz_player_id`, HttpOnly) i `RoomMaintenanceService` (briše neaktivne sobe svakih 5 min).
+- `GameEngine` / `Board`: samo dodani hookovi (`StartGame` s popisom `(Name, IsNpc)`, `BoardSeed`, `CurrentPlayerIndex`, `RestoreGame`, `Board.RestorePawn`); pravila igre nisu mijenjana.
+
+**Sobe**
+- Kod sobe ima 5 znakova iz abecede bez dvosmislenih znakova, generira se kriptografskim generatorom.
+- Ljudi + NPC <= 4; najmanje 1 čovjek; igra se pokreće s najmanje 2 igrača (npr. 1 čovjek + 1 NPC). Dodavanje/uklanjanje NPC-a i pokretanje igre samo za domaćina. Izlazak iz sobe moguć je samo u lobbyju (izlazak usred igre je faza 4).
+- Sve radnje jedne sobe idu kroz `SemaphoreSlim`; paralelni potezi: prolazi samo jedan.
+- Konfiguracija (`Rooms` odjeljak): `InactivityTimeout` (zadano 2 h), `QuestionTimeLimit` (30 s), `MaxRooms`.
+
+**Autorizacija i pitanja**
+- `BeginMoveAsync(playerId, pawnId, direction)` provjerava da je igrač u sobi, na redu i da pijun pripada njemu; server bira pitanje (ili 3 pitanja dvoboja) i drži ih u sobi.
+- `AnswerAsync(playerId, selectedIndex)`: klijent šalje samo indeks. `QuestionDto` nema točan odgovor ni objašnjenje.
+- Mjerač: `CancellationTokenSource` s `TimeProvider`-om, 30 s po pitanju (i po pitanju dvoboja). Istek = netočan odgovor, troši akciju pijuna, a u dvoboju prekida dvoboj.
+- Događaji (`Subscribe` vraća `IDisposable`; pogreška pretplatnika ne ruši sobu): `PlayerJoined`, `PlayerLeft`, `GameStarted`, `PawnMoved`, `PawnCaptured`, `TurnChanged`, `GameFinished` te dodatni `ActionResolved`. Objavljuju se nakon uspješnog spremanja.
+- NPC igrači igraju automatski (bez pauza; pauze su UI/faza 3). Ako su svi ljudi eliminirani, NPC-i staju.
+
+**Snapshot**
+- JSON (`SchemaVersion` = 1): pijuni kao ravan popis s koordinatama, igrači, čiji je red, `HasActedThisTurn`, stanje i pobjednik, seed i veličina ploče, te otvoreno pitanje (pijun, smjer, odgovori dvoboja, rok). Ploča se rekonstruira iz seeda.
+- Sprema se nakon svake promjene (ulazak/izlazak, NPC, start, otvaranje pitanja, ishod poteza, promjena reda, kraj igre). Jedan red po sobi, upsert u jednom `SaveChanges` (jedna transakcija).
+- Ako zapis ne uspije, radnja se odbija (`PersistenceFailed`), a memorijsko stanje se vraća na prethodni snapshot. Ako zapis ne uspije pri istjecanju vremena, pitanje ostaje otvoreno s novim mjeračem od 30 s.
+- Pri startu `RoomManager.LoadAsync` učitava sobe `Lobby`/`InProgress`; pitanje u tijeku računa se kao netočno (kod dvoboja prekida dvoboj) i taj ishod se sprema.

@@ -65,6 +65,17 @@ What has been implemented:
    dotnet run --project src/Sraz.UI.Wpf/Sraz.UI.Wpf.csproj
    ```
 
+## Run the Blazor Server scaffold with Docker
+
+1. Copy `.env.example` to `.env` and set a local PostgreSQL password.
+2. Start the app and database:
+   ```bash
+   docker compose up --build
+   ```
+3. Open [http://localhost:8080](http://localhost:8080). The `/health` endpoint reports application health.
+
+The Blazor app applies database migrations and imports the seed questions at startup. Keep real credentials out of version control. The WPF app continues to use its existing JSON question and leaderboard stores; PostgreSQL is configured only by the Blazor app.
+
 ## Project notes
 
 The app is now structured as a functional quiz game MVP rather than a scaffold-only project. The current implementation uses a JSON question store and local leaderboard persistence, which makes the game playable without requiring a database.

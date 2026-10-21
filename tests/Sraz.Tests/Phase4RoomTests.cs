@@ -76,14 +76,19 @@ public sealed class Phase4RoomTests
         await room.SetConnectedAsync(guest, false);
         context.Time.Advance(TimeSpan.FromSeconds(60));
         await room.WaitForTimeoutHandlingAsync();
+        var events = new List<RoomEvent>();
+        using var subscription = room.Subscribe(events.Add);
         await room.SetConnectedAsync(guest, true);
         Assert.True((await room.GetSnapshotAsync()).Players[1].IsNpc);
+        Assert.Single(events, item => item.Type == RoomEventType.PlayerReturned && item.PlayerId == guest);
         await FinishTurnAsync(room, host, 0);
 
         var snapshot = await room.GetSnapshotAsync();
         Assert.Equal(1, snapshot.Game!.CurrentPlayerIndex);
         Assert.False(snapshot.Players[1].IsNpc);
         Assert.Null(snapshot.Players[1].OriginalPlayerId);
+        Assert.Single(events, item => item.Type == RoomEventType.PlayerReturned && item.PlayerId == guest);
+        Assert.Contains(events, item => item.Type == RoomEventType.SettingsChanged && item.PlayerId == guest);
         Assert.True((await RoomTestContext.BeginAnyMoveAsync(room, guest, 1)).Question.Options.Count > 0);
     }
 

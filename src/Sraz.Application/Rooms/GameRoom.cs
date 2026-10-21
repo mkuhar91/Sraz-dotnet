@@ -158,9 +158,8 @@ public sealed class GameRoom : IDisposable
                 return RoomResult.Fail(RoomError.PersistenceFailed);
             }
 
-            events.Add(new RoomEvent(connected
-                ? player.IsNpc ? RoomEventType.SettingsChanged : RoomEventType.PlayerReturned
-                : RoomEventType.PlayerDisconnected, Code, index, playerId));
+            events.Add(new RoomEvent(connected ? RoomEventType.PlayerReturned : RoomEventType.PlayerDisconnected,
+                Code, index, playerId));
             await DriveNpcAsync(events, cancellationToken);
             return RoomResult.Ok;
         }, cancellationToken);
@@ -855,7 +854,7 @@ public sealed class GameRoom : IDisposable
 
         _players[index] = player with { IsNpc = false, OriginalPlayerId = null };
         _engine.Players[index].IsNpc = false;
-        return new RoomEvent(RoomEventType.PlayerReturned, Code, index, player.Id);
+        return new RoomEvent(RoomEventType.SettingsChanged, Code, index, player.Id);
     }
 
     private void ScheduleMaintenance()

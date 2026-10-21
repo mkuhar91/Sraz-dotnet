@@ -15,10 +15,9 @@ public partial class DuelWindow : Window
     public DuelWindow(IReadOnlyList<Question> questions)
     {
         InitializeComponent();
-        if (questions.Count != 3 || questions.Take(2).Any(question => question.Type != QuestionType.MultipleChoice) ||
-            questions[2].Type != QuestionType.TextInput)
+        if (questions.Count != 3 || questions.Any(question => question.Type != QuestionType.MultipleChoice))
         {
-            throw new ArgumentException("A duel requires two multiple-choice questions and one text question.", nameof(questions));
+            throw new ArgumentException("A duel requires three multiple-choice questions.", nameof(questions));
         }
 
         _questions = questions;
@@ -46,24 +45,6 @@ public partial class DuelWindow : Window
         QuestionText.Text = question.Text;
         FeedbackText.Text = string.Empty;
         AnswerPanel.Children.Clear();
-
-        if (question.Type == QuestionType.TextInput)
-        {
-            var answer = new TextBox { FontSize = 18, Height = 38, Margin = new Thickness(0, 0, 0, 8) };
-            var submit = new Button { Content = Localizer.Instance.Get("Submit"), Height = 38 };
-            submit.Click += (_, _) => Submit(question.IsTextAnswerCorrect(answer.Text));
-            answer.KeyDown += (_, e) =>
-            {
-                if (e.Key == System.Windows.Input.Key.Enter)
-                {
-                    Submit(question.IsTextAnswerCorrect(answer.Text));
-                }
-            };
-            AnswerPanel.Children.Add(answer);
-            AnswerPanel.Children.Add(submit);
-            answer.Focus();
-            return;
-        }
 
         for (var index = 0; index < question.Options.Count; index++)
         {

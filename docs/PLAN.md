@@ -19,7 +19,7 @@
 |---|---|
 | Prazno | 1 pitanje teme polja. Točan odgovor: pijun se pomiče. Netočan: ostaje. U oba slučaja troši se akcija. |
 | Vlastiti pijun | Zabranjeno. Ne troši akciju. |
-| Pijun protivnika | Dvoboj: 3 pitanja (2 s ponuđenim odgovorima, 1 s unosom) iz teme polja protivničkog pijuna. Prvi netočan odgovor prekida dvoboj. Ako su sva 3 točna, protivnički pijun se uklanja, a napadač staje na to polje. Troši se akcija. |
+| Pijun protivnika | Dvoboj: 3 pitanja s višestrukim izborom iz teme polja protivničkog pijuna. Prvi netočan odgovor prekida dvoboj. Ako su sva 3 točna, protivnički pijun se uklanja, a napadač staje na to polje. Troši se akcija. |
 
 ## 1. Domain (`src/Sraz.Domain/Models/`)
 - `QuestionTheme.cs`: enum od 8 tema (npr. Geography, History, Math, Science, Sport, Art, Literature, Entertainment). Uskladiti s `data/questions.seed.json`.
@@ -30,7 +30,7 @@
 - `Player.cs`: `Name`, `Index` (0-3), `Color`, `IsNpc`, `Pawns`, izračunato `IsEliminated`.
 - `MoveOutcome.cs`: `Moved, Stayed, Captured, Blocked`.
 - `GameState.cs`: `InProgress`, `Finished`, uz `Winner`.
-- Format pitanja (`MultipleChoice` i `FreeText`): provjeriti `Question.cs` i `QuestionType.cs`, proširiti ako treba.
+- Format pitanja: pitanja koriste višestruki izbor; provjeriti `Question.cs` i `QuestionType.cs`.
 
 ## 2. Application
 - `IBoardFactory` / `BoardFactory`: `Create(int size = 10, int? seed = null)`; ravnomjerna nasumična raspodjela tema (na 10×10 po 12-13 polja po temi); seed za ponovljive testove.
@@ -41,22 +41,20 @@
   - `GetAvailableMoves(pawn)`: prazno ako je pijun već igrao; isključuje vlastite pijune i polja izvan ploče; uključuje protivničke pijune kao napad.
   - `RequestMove(pawn, direction)`: jedno pitanje ili `Duel` s 3 pitanja.
   - `ResolveMove(pawn, direction, isCorrect)` i `ResolveDuel(pawn, direction, results)`; akcija se troši u svim ishodima osim `Blocked`.
-  - Dvoboj: 2 pitanja s izborom + 1 s unosom, bez ponavljanja, iz teme polja protivničkog pijuna; prekid na prvom netočnom.
-  - Provjera unosa: bez razlike u velikim/malim slovima, trim razmaka, lista `acceptedAnswers`.
+  - Dvoboj: 3 pitanja s višestrukim izborom, bez ponavljanja, iz teme polja protivničkog pijuna; prekid na prvom netočnom.
   - `CheckGameEnd()` nakon svakog `Captured`; kad ostane jedan igrač s pijunima: `Finished`, `Winner`. Nakon kraja `RequestMove`/`ResolveMove` bacaju `InvalidOperationException`.
   - Mapiranje `QuestionTheme` na `Category` preko `IQuestionProvider`.
 - NPC: `INpcStrategy` / `RandomNpcStrategy`: nasumičan pijun koji još nije igrao i nasumičan valjan smjer; nikad ne cilja vlastiti pijun; točnost odgovora je postavka (zadano ~60%), u dvoboju se primjenjuje na svako od 3 pitanja; opcionalni seed.
 
 ## 3. Podaci (`data/questions.seed.json`)
-- Za svaku od 8 tema dodati pitanja s unosom i dovoljno pitanja s izborom (min. 2 izbor + 1 unos po temi; preporuka 3-5 svake vrste).
-- Pitanja s unosom imaju `acceptedAnswers`.
-- Uklopiti se u postojeći format (`QuestionRecord.cs`, `Question.cs`, `JsonQuestionProvider.cs`).
+- Za svaku od 8 tema dodati 100 činjenično točnih pitanja na hrvatskom, sva s višestrukim izborom i bez duplikata unutar teme.
+- Uklopiti se u postojeći format (`QuestionRecord.cs`, `Question.cs`, `JsonQuestionProvider.cs`); odgovori se provjeravaju indeksom točnog ponuđenog odgovora.
 
 ## 4. UI (`src/Sraz.UI.Wpf/`)
 - `ThemeColors.cs`: tema -> boja + lokalizirani naziv.
-- `BoardWindow`: `UniformGrid` n×n s obojenim poljima, legenda tema, tooltip s temom; pijuni kao slika šahovskog pijuna u boji igrača; oznaka čiji je red, brojač "Preostalo akcija: X/3"; odigrani pijuni zatamnjeni; nema gumba "Završi potez".
+- `BoardWindow`: `UniformGrid` n×n s obojenim poljima, legenda tema, tooltip s temom; pijuni kao slika šahovskog pijuna u boji igrača; oznaka čiji je red, brojač "Preostalo akcija: X/3"; odigrani pijuni zatamnjeni; dopušteni potezi naglašeni crnim okvirom; nema gumba "Završi potez".
 - Kretanje: klik na vlastiti pijun naglašava dopuštena polja; protivnički pijuni označeni kao napad; klik na polje otvara `QuestionWindow` ili `DuelWindow`.
-- `DuelWindow`: 3 pitanja (2 izbor, 1 unos), napredak "Pitanje 1/3", prekid na prvom netočnom.
+- `DuelWindow`: 3 pitanja s višestrukim izborom, napredak "Pitanje 1/3", prekid na prvom netočnom.
 - NPC potezi automatski s kratkom pauzom i porukom.
 - Ekran kraja igre: pobjednik (ili "NPC je pobijedio"), "Nova igra", "Povratak na izbornik".
 - Obavijest o eliminaciji igrača i uklonjenom pijunu.
@@ -69,10 +67,10 @@
 - Postavljanje: 3 pijuna u L-obliku po igraču za 2, 3, 4 igrača na pločama 6, 10, 15; bez preklapanja; 5+ igrača iznimka; 1 igrač = NPC u suprotnom kutu.
 - Potezi: samo gore/dolje/lijevo/desno po 1 polje; točan pomiče, netočan ostavlja; jedna akcija po pijunu po redu (i netočan je troši); reset u novom redu; tema pitanja = tema odredišta.
 - Auto-kraj reda: nakon 3. pijuna prelazi, nakon 1. i 2. ne; nakon zadnjeg igrača vraća na prvog; reset `HasActedThisTurn`.
-- Zauzeta polja i dvoboj: vlastito polje nije dopušteno i ne troši akciju; protivnik pokreće dvoboj (2 izbor + 1 unos) iz teme njegova polja; 3 točna = uklonjen i napadač na polju; netočan prekida i troši akciju; provjera unosa; auto-kraj reda nakon dvoboja.
+- Zauzeta polja i dvoboj: vlastito polje nije dopušteno i ne troši akciju; protivnik pokreće dvoboj (3 pitanja s izborom) iz teme njegova polja; 3 točna = uklonjen i napadač na polju; netočan prekida i troši akciju; auto-kraj reda nakon dvoboja.
 - Kraj igre: uklanjanje zadnjeg pijuna završava igru; u 3-4 igrača eliminacija jednog ne završava; eliminirani se preskače; nakon kraja potezi nedopušteni; 1 igrač vs NPC u oba smjera.
 - NPC: samo valjani potezi, ne cilja vlastiti pijun, poštuje jednu akciju po pijunu.
-- Seed pitanja: svaka tema ima min. 2 izbor + 1 unos.
+- Seed pitanja: svaka tema ima barem 100 pitanja s izborom; provjeriti jedinstvenost, broj odgovora i valjan indeks točnog odgovora.
 
 ## 6. Redoslijed implementacije
 1. Domain modeli.

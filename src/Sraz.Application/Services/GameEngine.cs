@@ -196,15 +196,13 @@ public sealed class GameEngine : IGameEngine
             string.Equals(question.Category, CategoryFor(target.Theme), StringComparison.OrdinalIgnoreCase)).ToList();
         if (target.Occupant is not null)
         {
-            var multipleChoice = Shuffle(questionsForTheme.Where(question => question.Type == QuestionType.MultipleChoice)).Take(2).ToList();
-            var freeText = Shuffle(questionsForTheme.Where(question => question.Type == QuestionType.TextInput)).FirstOrDefault();
-            if (multipleChoice.Count != 2 || freeText is null)
+            var duelQuestions = Shuffle(questionsForTheme.Where(question => question.Type == QuestionType.MultipleChoice)).Take(3).ToList();
+            if (duelQuestions.Count != 3)
             {
                 throw new InvalidOperationException($"Not enough duel questions are available for {target.Theme}.");
             }
 
-            multipleChoice.Add(freeText);
-            return new MoveRequest { Target = target, Questions = multipleChoice, IsDuel = true };
+            return new MoveRequest { Target = target, Questions = duelQuestions, IsDuel = true };
         }
 
         var question = Shuffle(questionsForTheme).FirstOrDefault()

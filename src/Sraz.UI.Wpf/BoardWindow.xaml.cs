@@ -92,7 +92,7 @@ public partial class BoardWindow : Window
             }
             else if (_viewModel.AvailableMoves.Contains(cell))
             {
-                button.BorderBrush = cell.Occupant is null ? Brushes.LimeGreen : Brushes.Crimson;
+                button.BorderBrush = Brushes.Black;
             }
 
             if (cell.Occupant is { } pawn)

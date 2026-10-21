@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Input;
 using Sraz.UI.Wpf.Localization;
 using Sraz.UI.Wpf.ViewModels;
 
@@ -31,16 +30,6 @@ public partial class QuestionWindow : Window
 		if (sender is FrameworkElement { DataContext: OptionItem option })
 		{
 			await _vm.SelectAnswerAsync(option);
-		}
-	}
-
-	private async void Submit_Click(object sender, RoutedEventArgs e) => await _vm.SubmitTextAsync();
-
-	private async void TextAnswer_KeyDown(object sender, KeyEventArgs e)
-	{
-		if (e.Key == Key.Enter)
-		{
-			await _vm.SubmitTextAsync();
 		}
 	}
 

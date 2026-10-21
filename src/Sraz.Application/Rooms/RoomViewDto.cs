@@ -42,6 +42,6 @@ public sealed record BoardViewDto(
     IReadOnlyList<MoveTargetDto> AllowedMoves)
 {
     public bool IsViewerHost => ViewerIndex >= 0 && Players[ViewerIndex].IsHost;
-    public bool IsViewerTurn => ViewerIndex >= 0 && ViewerIndex == CurrentPlayerIndex;
+    public bool IsViewerTurn => ViewerIndex >= 0 && ViewerIndex == CurrentPlayerIndex && !Players[ViewerIndex].IsNpc;
     public PlayerViewDto? Host => Players.FirstOrDefault(player => player.IsHost);
 }

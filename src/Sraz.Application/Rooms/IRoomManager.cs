@@ -11,7 +11,6 @@ public interface IRoomManager
     Task<RoomResult> AddNpcAsync(string code, Guid requesterId, CancellationToken cancellationToken = default);
     Task<RoomResult> RemoveNpcAsync(string code, Guid requesterId, Guid npcId, CancellationToken cancellationToken = default);
     Task<RoomResult> StartGameAsync(string code, Guid requesterId, CancellationToken cancellationToken = default);
-    Task<int> LoadAsync(CancellationToken cancellationToken = default);
-    Task<int> LoadAsync(bool disconnectPlayers, CancellationToken cancellationToken = default);
+    Task<int> LoadAsync(CancellationToken cancellationToken = default, bool disconnectPlayers = false);
     Task<int> RemoveInactiveAsync(CancellationToken cancellationToken = default);
 }

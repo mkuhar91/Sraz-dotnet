@@ -89,6 +89,7 @@ public sealed class Phase4RoomTests
         Assert.Null(snapshot.Players[1].OriginalPlayerId);
         Assert.Single(events, item => item.Type == RoomEventType.PlayerReturned && item.PlayerId == guest);
         Assert.Contains(events, item => item.Type == RoomEventType.SettingsChanged && item.PlayerId == guest);
+        Assert.True((await room.GetViewAsync(guest)).IsViewerTurn);
         Assert.True((await RoomTestContext.BeginAnyMoveAsync(room, guest, 1)).Question.Options.Count > 0);
     }
 
@@ -103,8 +104,11 @@ public sealed class Phase4RoomTests
         var beforeTakeover = context.Store.SaveCount;
         context.Time.Advance(TimeSpan.FromSeconds(60));
         await room.WaitForTimeoutHandlingAsync();
+        Assert.Equal(beforeTakeover + 3, context.Store.SaveCount);
+        context.Time.Advance(TimeSpan.FromSeconds(1));
+        await room.WaitForTimeoutHandlingAsync();
+        Assert.Equal(beforeTakeover + 4, context.Store.SaveCount);
         var saves = context.Store.SaveCount;
-        Assert.True(saves > beforeTakeover + 2);
         Assert.All((await room.GetSnapshotAsync()).Players, player => Assert.True(player.IsNpc));
         context.Time.Advance(TimeSpan.FromHours(3));
         await room.WaitForTimeoutHandlingAsync();
@@ -221,6 +225,7 @@ public sealed class Phase4RoomTests
         Assert.Equal(0, after.Game!.CurrentPlayerIndex);
         Assert.InRange(context.Store.SaveCount - before, 1, 65);
         Assert.Empty((await room.GetViewAsync(host)).AllowedMoves);
+        Assert.False((await room.GetViewAsync(host)).IsViewerTurn);
         Assert.Equal(RoomError.PlayerNotInRoom, (await room.AnswerAsync(Guid.NewGuid(), 0)).Error);
         Assert.Equal(RoomError.PlayerNotInRoom, (await room.SetConnectedAsync(Guid.NewGuid(), true)).Error);
     }
@@ -345,6 +350,91 @@ public sealed class Phase4RoomTests
         Assert.Equal(activity, restored.LastActivityUtc);
         Assert.Equal(restored.Players[0].DisconnectedAtUtc,
             context.Store.Get(original.Code)!.Players[0].DisconnectedAtUtc);
+    }
+
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(31, true)]
+    public async Task RestoredPendingQuestionOnlyTriggersImmediateTakeoverAfterItsOriginalDeadline(
+        int elapsedSeconds, bool expectedTakeover)
+    {
+        var context = new RoomTestContext();
+        var (original, host, _) = await context.StartTwoPlayerGameAsync();
+        var (pawnId, _) = await RoomTestContext.BeginAnyMoveAsync(original, host, 0);
+        await original.SetConnectedAsync(host, false);
+        original.Close();
+        context.Time.Advance(TimeSpan.FromSeconds(elapsedSeconds));
+
+        var manager = context.NewManagerOnSameStore();
+        Assert.Equal(1, await manager.LoadAsync(disconnectPlayers: true));
+        var room = manager.GetRoom(original.Code)!;
+        var restored = await room.GetSnapshotAsync();
+        Assert.Null(restored.Game!.Pending);
+        Assert.True(restored.Game.Pawns.Single(pawn => pawn.Id == pawnId).HasActedThisTurn);
+        Assert.Equal(expectedTakeover, restored.Players[0].IsNpc);
+        Assert.Equal(expectedTakeover ? host : (Guid?)null, restored.Players[0].OriginalPlayerId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedPendingRecoveryThrowsAndLeavesPersistedActionUnchanged(bool disconnectPlayers)
+    {
+        var context = new RoomTestContext();
+        var (original, host, _) = await context.StartTwoPlayerGameAsync();
+        await RoomTestContext.BeginAnyMoveAsync(original, host, 0);
+        var snapshot = await original.GetSnapshotAsync();
+        var persisted = context.Store.GetJson(original.Code);
+        original.Close();
+        context.Store.FailWrites = true;
+        var services = new RoomServices(context.Store, new TestQuestionProvider(), new BlockedNpc(),
+            context.Time, TimeSpan.FromSeconds(30));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            GameRoom.RestoreAsync(snapshot, services, disconnectPlayers: disconnectPlayers));
+
+        Assert.Equal(persisted, context.Store.GetJson(original.Code));
+        context.Store.FailWrites = false;
+        using var recovered = await GameRoom.RestoreAsync(snapshot, services);
+        Assert.Null((await recovered.GetSnapshotAsync()).Game!.Pending);
+    }
+
+    [Fact]
+    public async Task ProductionRecoveryPersistsPresenceAndInterruptedActionInSingleWrite()
+    {
+        var context = new RoomTestContext();
+        var (original, host, _) = await context.StartTwoPlayerGameAsync();
+        await RoomTestContext.BeginAnyMoveAsync(original, host, 0);
+        var snapshot = await original.GetSnapshotAsync();
+        original.Close();
+        var store = new CountingRoomStore(context.Store);
+        var services = new RoomServices(store, new TestQuestionProvider(),
+            new BlockedNpc(), context.Time, TimeSpan.FromSeconds(30));
+
+        using var room = await GameRoom.RestoreAsync(snapshot, services, disconnectPlayers: true);
+
+        var persisted = context.Store.Get(original.Code)!;
+        Assert.Equal(1, store.Writes);
+        Assert.All(persisted.Players, player => Assert.True(player.IsDisconnected));
+        Assert.Null(persisted.Game!.Pending);
+        Assert.True(persisted.Game.Pawns.Single(pawn => pawn.Id == snapshot.Game!.Pending!.PawnId).HasActedThisTurn);
+    }
+
+    private sealed class CountingRoomStore(IRoomStore inner) : IRoomStore
+    {
+        public int Writes { get; private set; }
+
+        public Task SaveAsync(RoomSnapshot snapshot, CancellationToken cancellationToken = default)
+        {
+            Writes++;
+            return inner.SaveAsync(snapshot, cancellationToken);
+        }
+
+        public Task<IReadOnlyList<RoomSnapshot>> LoadActiveAsync(CancellationToken cancellationToken = default) =>
+            inner.LoadActiveAsync(cancellationToken);
+
+        public Task DeleteAsync(string code, CancellationToken cancellationToken = default) =>
+            inner.DeleteAsync(code, cancellationToken);
     }
 
     private sealed class CapturingNpc(Guid pawnId) : INpcStrategy

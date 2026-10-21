@@ -176,6 +176,7 @@ Samo serverska logika, bez UI-ja (UI je faza 3, odspajanje/NPC preuzimanje i lje
 - Veze se prate preko Blazor circuita i cookie identiteta. Više kartica istog preglednika predstavlja istog igrača; odspojen je tek kad nema nijednu aktivnu vezu.
 - Odspojeni igrač ima 60 s za povratak. Istek otvorenog pitanja od 30 s može ranije pokrenuti NPC preuzimanje; istek pitanja i dalje je netočan odgovor. NPC koristi postojeću strategiju, bez promjene pravila igre.
 - Povratnik kojem je NPC već preuzeo pijune ponovno dobiva kontrolu tek na početku sljedećeg vlastitog reda. Popis igrača i obavijesti prikazuju odspajanje, preuzimanje i povratak.
+- Dok nema spojenih ljudi, NPC radi najviše jedan korak po sekundnom mjeraču. Autonomni potezi ne produžuju neaktivnost sobe; obrada staje po isteku sobe ili kad nijedan preostali ljudski sudionik nema pijune kojima bi se mogao vratiti.
 - Snapshot v2 pamti odspajanje, vrijeme odspajanja, izvorni identitet i identitet partije; snapshot v1 ostaje čitljiv. Poslije restarta prethodne veze više nisu aktivne.
 - Rezultati se spremaju u PostgreSQL uz završni snapshot. Identitet partije sprječava ponovni upis istog rezultata. Svim ljudskim sudionicima broji se odigrana igra; NPC preuzimatelj ne donosi pobjedu izvornom igraču.
 - Završni panel prikazuje pobjednika i sažetak, izlaz i ljestvicu. Domaćin gumbom „Nova igra” vraća cijelu sobu u lobby s istim igračima.

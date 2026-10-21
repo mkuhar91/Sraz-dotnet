@@ -105,10 +105,7 @@ public sealed class RoomManager : IRoomManager
         WithRoomAsync(code, room => room.StartGameAsync(requesterId, cancellationToken));
 
     /// <summary>Loads Lobby and InProgress rooms from the store. Unreadable snapshots are skipped.</summary>
-    public Task<int> LoadAsync(CancellationToken cancellationToken = default) =>
-        LoadAsync(false, cancellationToken);
-
-    public async Task<int> LoadAsync(bool disconnectPlayers, CancellationToken cancellationToken = default)
+    public async Task<int> LoadAsync(CancellationToken cancellationToken = default, bool disconnectPlayers = false)
     {
         var loaded = 0;
         foreach (var snapshot in await _services.Store.LoadActiveAsync(cancellationToken))

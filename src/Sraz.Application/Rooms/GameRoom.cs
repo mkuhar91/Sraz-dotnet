@@ -261,34 +261,41 @@ public sealed class GameRoom : IDisposable
                 room._players = room._players.Select(player => !player.IsNpc || player.OriginalPlayerId is not null
                     ? player with { DisconnectedAtUtc = player.DisconnectedAtUtc ?? services.Time.GetUtcNow() }
                     : player).ToList();
-                await services.Store.SaveAsync(room.Capture(), cancellationToken);
+                if (snapshot.Game?.Pending is null)
+                {
+                    await services.Store.SaveAsync(room.Capture(), cancellationToken);
+                }
             }
 
             if (room.State == RoomState.InProgress)
             {
-                if (snapshot.Game?.Pending is { } pending && room.FindPawn(pending.PawnId) is { } pawn)
+                if (snapshot.Game?.Pending is { } pending)
                 {
+                    var pawn = room.FindPawn(pending.PawnId) ??
+                        throw new InvalidOperationException("The saved pending action is invalid.");
                     // A question that was open when the server stopped counts as incorrect.
                     var answers = pending.IsDuel ? pending.Answers.Append(false).ToList() : new List<bool> { false };
-                    if (room._players[room._engine.CurrentPlayerIndex].DisconnectedAtUtc is not null)
+                    if (room._players[room._engine.CurrentPlayerIndex].DisconnectedAtUtc is not null &&
+                        pending.DeadlineUtc <= services.Time.GetUtcNow())
                     {
                         room.TakeOver(room._engine.CurrentPlayerIndex);
                     }
                     var step = room.Resolve(pawn, pending.Direction, pending.IsDuel, answers);
-                    try
-                    {
-                        await services.Store.SaveAsync(room.Capture(), cancellationToken);
-                        events.AddRange(step);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                    }
+                    await services.Store.SaveAsync(room.Capture(), cancellationToken);
+                    events.AddRange(step);
                 }
 
                 await room.TakeOverExpiredAsync(events);
                 await room.DriveNpcAsync(events, cancellationToken);
             }
             room.ScheduleMaintenance();
+        }
+        catch
+        {
+            room._closed = true;
+            room._pending?.Timer.Dispose();
+            room._maintenanceTimer?.Dispose();
+            throw;
         }
         finally
         {
@@ -663,7 +670,11 @@ public sealed class GameRoom : IDisposable
     /// <summary>Lets NPC players act until a human is on turn. Each step is persisted and rolled back on failure.</summary>
     private async Task DriveNpcAsync(List<RoomEvent> events, CancellationToken cancellationToken)
     {
-        for (var steps = 0; steps < MaxNpcStepsPerDrive; steps++)
+        var stepLimit = _players.Any(player =>
+            (!player.IsNpc || player.OriginalPlayerId is not null) && player.DisconnectedAtUtc is null)
+            ? MaxNpcStepsPerDrive
+            : 1;
+        for (var steps = 0; steps < stepLimit; steps++)
         {
             if (!CanDriveNpc())
             {
@@ -760,7 +771,7 @@ public sealed class GameRoom : IDisposable
                 FinishedAtUtc = _services.Time.GetUtcNow(),
                 Players = _players.Where(player => !player.IsNpc || player.OriginalPlayerId is not null).Select(player => new RoomPlayerResultSnapshot
                 {
-                    PlayerId = player.Id,
+                    PlayerId = player.OriginalPlayerId ?? player.Id,
                     Name = player.Name,
                     Won = _engine.Winner is { IsNpc: false } winner && _players[winner.Index].Id == player.Id
                 }).ToList()

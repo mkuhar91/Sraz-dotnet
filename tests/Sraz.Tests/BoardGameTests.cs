@@ -129,8 +129,7 @@ public class BoardGameTests
 
         Assert.True(request.IsDuel);
         Assert.Equal(3, request.Questions.Count);
-        Assert.Equal(2, request.Questions.Count(question => question.Type == QuestionType.MultipleChoice));
-        Assert.Equal(1, request.Questions.Count(question => question.Type == QuestionType.TextInput));
+        Assert.Equal(3, request.Questions.Count(question => question.Type == QuestionType.MultipleChoice));
         Assert.Equal(MoveOutcome.Captured, result.Outcome);
         Assert.True(defender.IsCaptured);
         Assert.Equal((0, 2), (attacker.Row, attacker.Column));
@@ -225,20 +224,14 @@ public class BoardGameTests
             var questions = Enum.GetValues<QuestionTheme>().SelectMany(theme =>
             {
                 var category = theme.ToString();
-                var choices = Enumerable.Range(0, 2).Select(index => new Question
+                var choices = Enumerable.Range(0, 3).Select(index => new Question
                 {
                     Category = category,
                     Text = $"Choice question {index}",
                     Options = ["A", "B"],
                     CorrectOptionIndex = 0
                 });
-                return choices.Append(new Question
-                {
-                    Type = QuestionType.TextInput,
-                    Category = category,
-                    Text = "Text question",
-                    AcceptedAnswers = ["answer"]
-                });
+                return choices;
             }).ToList();
             return Task.FromResult<IReadOnlyList<Question>>(questions);
         }

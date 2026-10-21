@@ -47,18 +47,7 @@ public sealed class QuizRound
             return false;
         }
 
-        return Resolve(question.Type != QuestionType.TextInput && selectedIndex == question.CorrectOptionIndex);
-    }
-
-    public bool SubmitTextAnswer(string? answer)
-    {
-        var question = CurrentQuestion;
-        if (question is null)
-        {
-            return false;
-        }
-
-        return Resolve(question.IsTextAnswerCorrect(answer));
+        return Resolve(selectedIndex == question.CorrectOptionIndex);
     }
 
     public void RegisterTimeout()

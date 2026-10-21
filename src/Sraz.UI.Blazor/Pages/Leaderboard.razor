@@ -1,0 +1,79 @@
+@page "/leaderboard"
+@namespace Sraz.UI.Blazor.Pages
+@using Sraz.Application.Abstractions
+@implements IDisposable
+@inject IRoomLeaderboard LeaderboardService
+@inject ILogger<Leaderboard> Logger
+
+<PageTitle>@Texts["Leaderboard"] – @Texts.AppName</PageTitle>
+<main class="leaderboard">
+    <h1>@Texts["Leaderboard"]</h1>
+    @if (_failed)
+    {
+        <p class="toast error" role="alert">@Texts["LeaderboardError"]</p>
+    }
+    else if (_entries is null)
+    {
+        <p role="status">@Texts["Loading"]</p>
+    }
+    else if (_entries.Count == 0)
+    {
+        <p>@Texts["LeaderboardEmpty"]</p>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table>
+                <thead><tr>
+                    <th scope="col">@Texts["Rank"]</th>
+                    <th scope="col">@Texts["Player"]</th>
+                    <th scope="col">@Texts["Wins"]</th>
+                    <th scope="col">@Texts["GamesPlayed"]</th>
+                    <th scope="col">@Texts["WinPercentage"]</th>
+                    <th scope="col">@Texts["LastPlayed"]</th>
+                </tr></thead>
+                <tbody>
+                    @for (var i = 0; i < _entries.Count; i++)
+                    {
+                        var entry = _entries[i];
+                        <tr>
+                            <td>@(i + 1)</td><th scope="row">@entry.Nickname</th>
+                            <td>@entry.Wins</td><td>@entry.GamesPlayed</td>
+                            <td>@((entry.GamesPlayed > 0 ? (double)entry.Wins / entry.GamesPlayed : 0).ToString("P0"))</td>
+                            <td><time datetime="@entry.LastPlayedAtUtc.ToString("O")">@entry.LastPlayedAtUtc.ToString("d")</time></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    <a href="/">@Texts["Menu"]</a>
+</main>
+
+@code {
+    private readonly CancellationTokenSource _cancellation = new();
+    private IReadOnlyList<RoomLeaderboardEntry>? _entries;
+    private bool _failed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _entries = await LeaderboardService.GetTopAsync(100, _cancellation.Token);
+        }
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to load room leaderboard");
+            _failed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cancellation.Cancel();
+        _cancellation.Dispose();
+    }
+}

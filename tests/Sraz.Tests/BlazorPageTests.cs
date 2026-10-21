@@ -2,8 +2,10 @@ using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
 using Sraz.Application.Rooms;
+using Sraz.Domain.Models;
 using Sraz.UI.Blazor.Pages;
 using Sraz.UI.Blazor.Services;
+using Sraz.UI.Blazor.Localization;
 using Xunit;
 
 namespace Sraz.Tests;
@@ -17,9 +19,11 @@ public sealed class BlazorPageTests : TestContext
 
     private readonly RoomTestContext _rooms = new();
 
-    private void Register(Guid playerId)
+    private void Register(Guid playerId, IRoomManager? manager = null)
     {
-        Services.AddSingleton<IRoomManager>(_rooms.Manager);
+        Services.AddLocalization();
+        Services.AddScoped<Texts>();
+        Services.AddSingleton<IRoomManager>(manager ?? _rooms.Manager);
         Services.AddSingleton<IPlayerIdentity>(new FixedIdentity(playerId));
         Services.AddSingleton(new NicknameStore());
         Services.AddSingleton<TimeProvider>(_rooms.Time);
@@ -114,6 +118,31 @@ public sealed class BlazorPageTests : TestContext
     }
 
     [Fact]
+    public async Task FailedAnswerPersistenceAllowsRetryOnSameQuestion()
+    {
+        var (room, host, _) = await _rooms.StartTwoPlayerGameAsync();
+        Register(host);
+        var cut = RenderComponent<Game>(p => p.Add(g => g.Code, room.Code));
+        cut.FindAll("button.pawn-button").First().Click();
+        cut.FindAll(".cell.target").First().Click();
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll("button.option")));
+        _rooms.Store.FailWrites = true;
+
+        cut.FindAll("button.option")[TestQuestionProvider.CorrectIndex].Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotEmpty(cut.FindAll(".toast.error"));
+            Assert.All(cut.FindAll("button.option"), option => Assert.False(option.HasAttribute("disabled")));
+        });
+        Assert.True((await room.GetViewAsync(host)).HasPendingQuestion);
+        _rooms.Store.FailWrites = false;
+        cut.FindAll("button.option")[TestQuestionProvider.CorrectIndex].Click();
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".modal")));
+        Assert.False((await room.GetViewAsync(host)).HasPendingQuestion);
+    }
+
+    [Fact]
     public async Task GameUnsubscribesFromRoomWhenDisposed()
     {
         var (room, p0, _) = await _rooms.StartTwoPlayerGameAsync();
@@ -125,5 +154,77 @@ public sealed class BlazorPageTests : TestContext
         await RoomTestContext.BeginAnyMoveAsync(room, p0, 0);
 
         Assert.Equal(renders, cut.RenderCount);
+    }
+
+    [Fact]
+    public async Task GameShowsDisconnectReturnAndTakeoverNotificationsWithoutLosingMembership()
+    {
+        var (room, host, guest) = await _rooms.StartTwoPlayerGameAsync();
+        Register(guest);
+        var cut = RenderComponent<Game>(p => p.Add(g => g.Code, room.Code));
+
+        await room.SetConnectedAsync(guest, false);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("odspojen", cut.Find(".players").TextContent);
+            Assert.Contains("Ben se odspojio.", cut.Find(".notices").TextContent);
+        });
+        _rooms.Time.Advance(TimeSpan.FromSeconds(60));
+        await room.WaitForTimeoutHandlingAsync();
+        cut.WaitForAssertion(() => Assert.Contains("NPC je preuzeo pijune igrača Ben.", cut.Find(".notices").TextContent));
+        Assert.DoesNotContain("notmember", Services.GetRequiredService<FakeNavigationManager>().Uri);
+
+        await room.SetConnectedAsync(guest, true);
+        for (var i = 0; i < 3 && (await room.GetViewAsync(host)).CurrentPlayerIndex == 0; i++)
+        {
+            await RoomTestContext.BeginAnyMoveAsync(room, host, 0);
+            await room.AnswerAsync(host, TestQuestionProvider.CorrectIndex);
+        }
+        cut.WaitForAssertion(() =>
+        {
+            Assert.DoesNotContain("odspojen", cut.Find(".players").TextContent);
+            Assert.Contains("Ben se vratio.", cut.Find(".notices").TextContent);
+        });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task FinishedGameRestartsForHostAndGuestNavigatesViaRoomEvent(bool viewerIsHost)
+    {
+        var (room, manager, host, guest, attacker, _) = await _rooms.ArrangeDuelAsync(lastDefender: true);
+        await room.BeginMoveAsync(host, attacker, Direction.Right);
+        for (var i = 0; i < 3; i++)
+            await room.AnswerAsync(host, TestQuestionProvider.CorrectIndex);
+        Assert.Equal(RoomState.Finished, room.State);
+        Register(viewerIsHost ? host : guest, manager);
+        var cut = RenderComponent<Game>(p => p.Add(g => g.Code, room.Code));
+        Assert.Contains("Ana", cut.Find(".game-over .winner").TextContent);
+        if (viewerIsHost)
+            cut.Find(".game-over button").Click();
+        else
+        {
+            Assert.Empty(cut.FindAll(".game-over button"));
+            await room.RestartAsync(host);
+        }
+
+        cut.WaitForAssertion(() => Assert.Contains($"/lobby/{room.Code}", Services.GetRequiredService<FakeNavigationManager>().Uri));
+        Assert.Equal(RoomState.Lobby, room.State);
+    }
+
+    [Fact]
+    public async Task LobbyUnsubscribesFromPreviousRoomWhenRouteCodeChanges()
+    {
+        var host = Guid.NewGuid();
+        Register(host);
+        var first = (await _rooms.Manager.CreateRoomAsync(host, "Ana")).Value!;
+        var second = (await _rooms.Manager.CreateRoomAsync(host, "Ana")).Value!;
+        var cut = RenderComponent<Lobby>(p => p.Add(l => l.Code, first.Code));
+        cut.SetParametersAndRender(p => p.Add(l => l.Code, second.Code));
+        var renders = cut.RenderCount;
+
+        await first.AddNpcAsync(host);
+        Assert.Equal(renders, cut.RenderCount);
+        Assert.Equal(second.Code, cut.Find("[data-testid=room-code]").TextContent);
     }
 }

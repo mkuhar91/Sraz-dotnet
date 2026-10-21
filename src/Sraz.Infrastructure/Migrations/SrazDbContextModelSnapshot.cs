@@ -91,12 +91,18 @@ namespace Sraz.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("GameId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("PlayedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PlayerId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PlayerName")
                         .IsRequired()
@@ -108,10 +114,18 @@ namespace Sraz.Infrastructure.Migrations
                     b.Property<int>("Timeouts")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("Won")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("WrongAnswers")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("GameId", "PlayerId")
+                        .IsUnique();
 
                     b.ToTable("LeaderboardEntries");
                 });

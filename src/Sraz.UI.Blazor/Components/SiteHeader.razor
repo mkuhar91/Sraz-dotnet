@@ -1,0 +1,24 @@
+@using System.Globalization
+@inject NavigationManager Navigation
+
+<header class="site-header">
+    <nav aria-label="@Texts["Menu"]">
+        <a href="/">@Texts.AppName</a>
+        <a href="/leaderboard">@Texts["Leaderboard"]</a>
+    </nav>
+    <nav aria-label="@Texts["Language"]">
+        <a href="@CultureUrl("hr")" hreflang="hr" lang="hr" aria-current="@Current("hr")" @onclick="SetCroatian" @onclick:preventDefault="true">Hrvatski</a>
+        <a href="@CultureUrl("en")" hreflang="en" lang="en" aria-current="@Current("en")" @onclick="SetEnglish" @onclick:preventDefault="true">English</a>
+    </nav>
+</header>
+
+@code {
+    private string? Current(string culture) => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == culture ? "true" : null;
+    private void SetCroatian() => Navigation.NavigateTo(CultureUrl("hr"), forceLoad: true);
+    private void SetEnglish() => Navigation.NavigateTo(CultureUrl("en"), forceLoad: true);
+    private string CultureUrl(string culture)
+    {
+        var uri = new Uri(Navigation.Uri);
+        return $"/culture?culture={culture}&returnUrl={Uri.EscapeDataString(uri.PathAndQuery)}";
+    }
+}

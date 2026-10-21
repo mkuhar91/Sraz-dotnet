@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>Sraz</value></data>
+  <data name="Tagline" xml:space="preserve"><value>A board quiz for 2 to 4 players</value></data>
+  <data name="Nickname" xml:space="preserve"><value>Nickname</value></data>
+  <data name="NicknamePlaceholder" xml:space="preserve"><value>Enter your nickname</value></data>
+  <data name="CreateRoom" xml:space="preserve"><value>Create room</value></data>
+  <data name="JoinRoomHeading" xml:space="preserve"><value>Join a room</value></data>
+  <data name="JoinCode" xml:space="preserve"><value>Join with a code</value></data>
+  <data name="JoinCodePlaceholder" xml:space="preserve"><value>Room code</value></data>
+  <data name="Join" xml:space="preserve"><value>Join</value></data>
+  <data name="NicknameInvalid" xml:space="preserve"><value>Enter a nickname (1 to 24 characters).</value></data>
+  <data name="CodeRequired" xml:space="preserve"><value>Enter a room code.</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Close</value></data>
+  <data name="Lobby" xml:space="preserve"><value>Lobby</value></data>
+  <data name="RoomCode" xml:space="preserve"><value>Room code</value></data>
+  <data name="Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Copied" xml:space="preserve"><value>Copied</value></data>
+  <data name="Players" xml:space="preserve"><value>Players</value></data>
+  <data name="Host" xml:space="preserve"><value>host</value></data>
+  <data name="Npc" xml:space="preserve"><value>NPC</value></data>
+  <data name="You" xml:space="preserve"><value>you</value></data>
+  <data name="BoardSize" xml:space="preserve"><value>Board size</value></data>
+  <data name="AddNpc" xml:space="preserve"><value>Add NPC</value></data>
+  <data name="RemoveNpc" xml:space="preserve"><value>Remove</value></data>
+  <data name="StartGame" xml:space="preserve"><value>Start game</value></data>
+  <data name="LeaveRoom" xml:space="preserve"><value>Leave room</value></data>
+  <data name="WaitingForHost" xml:space="preserve"><value>Waiting for the host to start the game.</value></data>
+  <data name="StartRule" xml:space="preserve"><value>At least 2 players are needed (up to 4 humans and NPCs combined).</value></data>
+  <data name="YourTurn" xml:space="preserve"><value>Your turn. Select a pawn.</value></data>
+  <data name="Legend" xml:space="preserve"><value>Question themes</value></data>
+  <data name="PawnsLeft" xml:space="preserve"><value>pawns</value></data>
+  <data name="OnTurn" xml:space="preserve"><value>on turn</value></data>
+  <data name="Notices" xml:space="preserve"><value>Events</value></data>
+  <data name="Board" xml:space="preserve"><value>Board</value></data>
+  <data name="Question" xml:space="preserve"><value>Question</value></data>
+  <data name="Duel" xml:space="preserve"><value>Duel</value></data>
+  <data name="TimeUp" xml:space="preserve"><value>Time is up.</value></data>
+  <data name="Seconds" xml:space="preserve"><value>s</value></data>
+  <data name="Correct" xml:space="preserve"><value>Correct answer</value></data>
+  <data name="Wrong" xml:space="preserve"><value>Incorrect answer</value></data>
+  <data name="DuelOutcome" xml:space="preserve"><value>Duel outcome</value></data>
+  <data name="DuelAborted" xml:space="preserve"><value>The duel was lost.</value></data>
+  <data name="DuelWon" xml:space="preserve"><value>The duel was won.</value></data>
+  <data name="GameOver" xml:space="preserve"><value>Game over</value></data>
+  <data name="NewGame" xml:space="preserve"><value>New game</value></data>
+  <data name="Winner" xml:space="preserve"><value>Winner</value></data>
+  <data name="NoWinner" xml:space="preserve"><value>No winner.</value></data>
+  <data name="OnTurnPlayer" xml:space="preserve"><value>On turn: {0}</value></data>
+  <data name="PlayerAnswering" xml:space="preserve"><value>Player {0} is answering a question</value></data>
+  <data name="QuestionOf" xml:space="preserve"><value>{0}/{1}</value></data>
+  <data name="RoomBoard" xml:space="preserve"><value>{0} × {0}</value></data>
+  <data name="WinnerIs" xml:space="preserve"><value>{0} wins!</value></data>
+  <data name="PawnMoved" xml:space="preserve"><value>{0}: pawn moved</value></data>
+  <data name="PawnCapturedOf" xml:space="preserve"><value>A pawn of {0} was captured</value></data>
+  <data name="PawnStayed" xml:space="preserve"><value>{0}: incorrect answer, pawn stays</value></data>
+  <data name="PlayerJoined" xml:space="preserve"><value>{0} joined the room</value></data>
+  <data name="PlayerDisconnected" xml:space="preserve"><value>{0} disconnected.</value></data>
+  <data name="NpcTakeover" xml:space="preserve"><value>An NPC took over the pawns of {0}.</value></data>
+  <data name="PlayerReturned" xml:space="preserve"><value>{0} returned.</value></data>
+  <data name="Notice_notfound" xml:space="preserve"><value>The room does not exist or has expired.</value></data>
+  <data name="Notice_finished" xml:space="preserve"><value>The game has finished.</value></data>
+  <data name="Notice_notmember" xml:space="preserve"><value>You are not a member of this room. Join using its code.</value></data>
+  <data name="Notice_left" xml:space="preserve"><value>You left the room.</value></data>
+  <data name="Theme_Geography" xml:space="preserve"><value>Geography</value></data>
+  <data name="Theme_History" xml:space="preserve"><value>History</value></data>
+  <data name="Theme_Math" xml:space="preserve"><value>Mathematics</value></data>
+  <data name="Theme_Science" xml:space="preserve"><value>Science</value></data>
+  <data name="Theme_Sports" xml:space="preserve"><value>Sports</value></data>
+  <data name="Theme_Art" xml:space="preserve"><value>Art</value></data>
+  <data name="Theme_Literature" xml:space="preserve"><value>Literature</value></data>
+  <data name="Theme_Entertainment" xml:space="preserve"><value>Entertainment</value></data>
+  <data name="Outcome_Moved" xml:space="preserve"><value>The pawn moved.</value></data>
+  <data name="Outcome_Captured" xml:space="preserve"><value>The pawn was captured.</value></data>
+  <data name="Outcome_Stayed" xml:space="preserve"><value>The pawn stays in place.</value></data>
+  <data name="Error_RoomNotFound" xml:space="preserve"><value>No room exists with that code.</value></data>
+  <data name="Error_RoomFull" xml:space="preserve"><value>The room is full (up to 4 players).</value></data>
+  <data name="Error_NotInLobby" xml:space="preserve"><value>The game in that room has already started.</value></data>
+  <data name="Error_NotHost" xml:space="preserve"><value>Only the host can do that.</value></data>
+  <data name="Error_NotInProgress" xml:space="preserve"><value>No game is in progress.</value></data>
+  <data name="Error_NotEnoughPlayers" xml:space="preserve"><value>At least 2 players are needed.</value></data>
+  <data name="Error_PlayerNotInRoom" xml:space="preserve"><value>You are not a member of this room.</value></data>
+  <data name="Error_NotYourTurn" xml:space="preserve"><value>It is not your turn.</value></data>
+  <data name="Error_PawnNotOwned" xml:space="preserve"><value>That is not your pawn.</value></data>
+  <data name="Error_InvalidMove" xml:space="preserve"><value>That move is not allowed.</value></data>
+  <data name="Error_InvalidName" xml:space="preserve"><value>The nickname must have 1 to 24 characters.</value></data>
+  <data name="Error_InvalidBoardSize" xml:space="preserve"><value>That board size is not allowed.</value></data>
+  <data name="Error_InvalidAnswer" xml:space="preserve"><value>Invalid answer.</value></data>
+  <data name="Error_NoPendingQuestion" xml:space="preserve"><value>There is no pending question.</value></data>
+  <data name="Error_QuestionPending" xml:space="preserve"><value>A question is already pending.</value></data>
+  <data name="Error_QuestionsUnavailable" xml:space="preserve"><value>Questions are currently unavailable.</value></data>
+  <data name="Error_TooManyRooms" xml:space="preserve"><value>Too many rooms are active. Try again later.</value></data>
+  <data name="Error_PersistenceFailed" xml:space="preserve"><value>Saving failed. Try again.</value></data>
+  <data name="Error_Unknown" xml:space="preserve"><value>An error occurred.</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Menu" xml:space="preserve"><value>Menu</value></data>
+  <data name="Leaderboard" xml:space="preserve"><value>Leaderboard</value></data>
+  <data name="Disconnected" xml:space="preserve"><value>disconnected</value></data>
+  <data name="WaitingForRestart" xml:space="preserve"><value>Waiting for the host to start a new game.</value></data>
+  <data name="Summary" xml:space="preserve"><value>Game summary</value></data>
+  <data name="PageNotFound" xml:space="preserve"><value>Page not found.</value></data>
+  <data name="Rank" xml:space="preserve"><value>Rank</value></data>
+  <data name="Player" xml:space="preserve"><value>Player</value></data>
+  <data name="Wins" xml:space="preserve"><value>Wins</value></data>
+  <data name="GamesPlayed" xml:space="preserve"><value>Games played</value></data>
+  <data name="WinPercentage" xml:space="preserve"><value>Win percentage</value></data>
+  <data name="LastPlayed" xml:space="preserve"><value>Last played</value></data>
+  <data name="LeaderboardEmpty" xml:space="preserve"><value>No games have been played yet.</value></data>
+  <data name="LeaderboardError" xml:space="preserve"><value>The leaderboard is currently unavailable. Try again later.</value></data>
+  <data name="Loading" xml:space="preserve"><value>Loading…</value></data>
+</root>

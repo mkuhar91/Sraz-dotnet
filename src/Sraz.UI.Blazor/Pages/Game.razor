@@ -26,7 +26,7 @@
             <aside class="side">
                 @if (_view.State == RoomState.Finished)
                 {
-                    <GameOver View="_view" OnNewGame="NewGame" />
+                    <GameOver View="_view" Disabled="_submitting" OnNewGame="NewGameAsync" />
                 }
 
                 <section class="players" aria-label="@Texts.Players">
@@ -38,6 +38,7 @@
                                 <span class="dot" style="background:@player.Color"></span>
                                 <span class="name">@player.Name</span>
                                 @if (player.IsNpc) { <span class="badge npc">@Texts.Npc</span> }
+                                @if (player.IsDisconnected) { <span class="badge disconnected">@Texts["Disconnected"]</span> }
                                 @if (player.Index == _view.ViewerIndex) { <span class="badge me">@Texts.You</span> }
                                 @if (player.Index == _view.CurrentPlayerIndex && _view.State == RoomState.InProgress) { <span class="badge turn">@Texts.OnTurn</span> }
                                 <span class="pawns-left">@player.PawnsRemaining @Texts.PawnsLeft</span>
@@ -86,6 +87,7 @@
     private AnswerResultDto? _duelResult;
     private string? _message;
     private bool _submitting;
+    private QuestionDto? _answeredQuestion;
     private bool _disposed;
     private int _refreshVersion;
     private readonly List<string> _notices = new();
@@ -116,8 +118,18 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        if (_room?.Code.Equals(Code, StringComparison.OrdinalIgnoreCase) == true) return;
+        _subscription?.Dispose();
+        _subscription = null;
+        _refreshVersion++;
+        _view = null;
+        _question = null;
+        _duelResult = null;
+        _answeredQuestion = null;
+        _selectedPawnId = null;
+        _notices.Clear();
         _playerId = Identity.GetOrCreatePlayerId();
         _room = Rooms.GetRoom(Code);
         if (_room is null)
@@ -174,7 +186,7 @@
         }
 
         _view = view;
-        if (view.ViewerIndex < 0)
+        if (view.ViewerIndex < 0 && !view.Players.Any(p => p.Id == _playerId || p.OriginalPlayerId == _playerId))
         {
             Navigation.NavigateTo($"/?notice=notmember&code={Uri.EscapeDataString(view.Code)}");
             return;
@@ -239,12 +251,13 @@
 
     private async Task AnswerAsync(int selectedIndex)
     {
-        if (_submitting || _room is null || _question is null)
+        if (_submitting || _room is null || _question is null || _duelResult is not null || _answeredQuestion == _question)
         {
             return;
         }
 
         _submitting = true;
+        _answeredQuestion = _question;
         var wasDuel = _question.IsDuel;
         try
         {
@@ -252,9 +265,15 @@
             if (!result.Success)
             {
                 _message = Texts.Error(result.Error);
+                _answeredQuestion = null;
                 if (result.Error is RoomError.NoPendingQuestion or RoomError.NotYourTurn or RoomError.NotInProgress)
                 {
                     _question = null;
+                }
+                else if (_question is not null)
+                {
+                    // Re-enable this question only when the server rejected the answer.
+                    _question = _question with { };
                 }
             }
             else
@@ -290,7 +309,21 @@
         _question = null;
     }
 
-    private void NewGame() => Navigation.NavigateTo("/");
+    private async Task NewGameAsync()
+    {
+        if (_submitting || _room is null || _view?.IsViewerHost != true) return;
+        _submitting = true;
+        try
+        {
+            var result = await _room.RestartAsync(_playerId);
+            _message = result.Success ? null : Texts.Error(result.Error);
+            await RefreshAsync();
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
 
     private void AddNotice(RoomEvent roomEvent)
     {
@@ -303,6 +336,9 @@
             RoomEventType.PawnCaptured => Texts.PawnCapturedOf(NameOf(roomEvent.PlayerIndex)),
             RoomEventType.TurnChanged => Texts.OnTurnPlayer(NameOf(roomEvent.PlayerIndex)),
             RoomEventType.GameFinished => Texts.GameOver,
+            RoomEventType.PlayerDisconnected => Texts.PlayerDisconnected(NameOf(roomEvent.PlayerIndex)),
+            RoomEventType.NpcTakeover => Texts.NpcTakeover(NameOf(roomEvent.PlayerIndex)),
+            RoomEventType.PlayerReturned => Texts.PlayerReturned(NameOf(roomEvent.PlayerIndex)),
             RoomEventType.ActionResolved when roomEvent.Outcome == MoveOutcome.Stayed => Texts.PawnStayed(NameOf(roomEvent.PlayerIndex)),
             _ => null
         };

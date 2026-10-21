@@ -28,6 +28,8 @@ public sealed class SrazDbContext(DbContextOptions<SrazDbContext> options) : DbC
             entity.Property(entry => entry.Category).IsRequired();
             entity.Property(entry => entry.Difficulty).IsRequired();
             entity.Property(entry => entry.Mode).IsRequired();
+            entity.HasIndex(entry => new { entry.GameId, entry.PlayerId }).IsUnique();
+            entity.HasIndex(entry => entry.PlayerId);
         });
 
         modelBuilder.Entity<GameRoomEntity>(entity =>

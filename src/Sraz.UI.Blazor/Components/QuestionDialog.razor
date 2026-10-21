@@ -5,7 +5,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="question-title">
         <header>
             <h2 id="question-title">@Texts.Question</h2>
-            <span class="theme-tag">@Question.Category</span>
+            <span class="theme-tag">@Texts.Category(Question.Category)</span>
         </header>
         <Countdown ExpiresAtUtc="Question.ExpiresAtUtc" OnExpired="HandleExpired" />
         <p class="question-text">@Question.Text</p>
@@ -37,7 +37,23 @@
     private Task HandleExpired() => OnExpired.InvokeAsync();
 
     private bool IsExpired => Time.GetUtcNow() >= Question.ExpiresAtUtc;
-    private bool IsLocked => Disabled || IsExpired;
+    private bool _answered;
+    private QuestionDto? _displayedQuestion;
+    private bool IsLocked => Disabled || IsExpired || _answered;
 
-    private Task Select(int index) => IsLocked ? Task.CompletedTask : OnAnswer.InvokeAsync(index);
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_displayedQuestion, Question))
+        {
+            _displayedQuestion = Question;
+            _answered = false;
+        }
+    }
+
+    private async Task Select(int index)
+    {
+        if (IsLocked) return;
+        _answered = true;
+        await OnAnswer.InvokeAsync(index);
+    }
 }

@@ -5,7 +5,7 @@
     <div class="modal duel" role="dialog" aria-modal="true" aria-labelledby="duel-title">
         <header>
             <h2 id="duel-title">@Texts.Duel</h2>
-            <span class="theme-tag">@Question.Category</span>
+            <span class="theme-tag">@Texts.Category(Question.Category)</span>
         </header>
         <div class="duel-progress" aria-label="@Texts.QuestionOf(Question.Number, Question.Total)">
             @for (var i = 1; i <= Question.Total; i++)
@@ -57,12 +57,28 @@
     private Task HandleExpired() => OnExpired.InvokeAsync();
 
     private bool IsExpired => Time.GetUtcNow() >= Question.ExpiresAtUtc;
-    private bool IsLocked => Disabled || IsExpired;
+    private bool _answered;
+    private QuestionDto? _displayedQuestion;
+    private bool IsLocked => Disabled || IsExpired || _answered || Result is { IsCompleted: true };
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_displayedQuestion, Question))
+        {
+            _displayedQuestion = Question;
+            _answered = false;
+        }
+    }
 
     private string StepClass(int step) =>
         step < Question.Number || (Result is { IsCompleted: true, WasCorrect: true }) ? "done"
         : step == Question.Number ? (Result is { IsCompleted: true } ? "failed" : "current")
         : string.Empty;
 
-    private Task Select(int index) => IsLocked ? Task.CompletedTask : OnAnswer.InvokeAsync(index);
+    private async Task Select(int index)
+    {
+        if (IsLocked) return;
+        _answered = true;
+        await OnAnswer.InvokeAsync(index);
+    }
 }

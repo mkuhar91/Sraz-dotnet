@@ -21,10 +21,12 @@ public sealed class RoomManager : IRoomManager
         RoomManagerOptions? options = null)
     {
         _options = options ?? new RoomManagerOptions();
-        _services = new RoomServices(store, questions, npcStrategy, timeProvider ?? TimeProvider.System, _options.QuestionTimeLimit);
+        _services = new RoomServices(store, questions, npcStrategy, timeProvider ?? TimeProvider.System, _options.QuestionTimeLimit, _options.InactivityTimeout);
     }
 
     public int RoomCount => _rooms.Count;
+
+    public IReadOnlyList<GameRoom> GetRooms() => _rooms.Values.ToList();
 
     public GameRoom? GetRoom(string code) =>
         string.IsNullOrWhiteSpace(code) ? null : _rooms.GetValueOrDefault(code.Trim().ToUpperInvariant());
@@ -103,14 +105,17 @@ public sealed class RoomManager : IRoomManager
         WithRoomAsync(code, room => room.StartGameAsync(requesterId, cancellationToken));
 
     /// <summary>Loads Lobby and InProgress rooms from the store. Unreadable snapshots are skipped.</summary>
-    public async Task<int> LoadAsync(CancellationToken cancellationToken = default)
+    public Task<int> LoadAsync(CancellationToken cancellationToken = default) =>
+        LoadAsync(false, cancellationToken);
+
+    public async Task<int> LoadAsync(bool disconnectPlayers, CancellationToken cancellationToken = default)
     {
         var loaded = 0;
         foreach (var snapshot in await _services.Store.LoadActiveAsync(cancellationToken))
         {
             try
             {
-                var room = await GameRoom.RestoreAsync(snapshot, _services, cancellationToken);
+                var room = await GameRoom.RestoreAsync(snapshot, _services, cancellationToken, disconnectPlayers);
                 if (_rooms.TryAdd(room.Code, room))
                 {
                     loaded++;

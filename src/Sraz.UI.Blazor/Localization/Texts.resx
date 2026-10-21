@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>Sraz</value></data>
+  <data name="Tagline" xml:space="preserve"><value>Kviz s pločom za 2 do 4 igrača</value></data>
+  <data name="Nickname" xml:space="preserve"><value>Nadimak</value></data>
+  <data name="NicknamePlaceholder" xml:space="preserve"><value>Upiši svoj nadimak</value></data>
+  <data name="CreateRoom" xml:space="preserve"><value>Stvori sobu</value></data>
+  <data name="JoinRoomHeading" xml:space="preserve"><value>Pridruži se sobi</value></data>
+  <data name="JoinCode" xml:space="preserve"><value>Pridruži se kodu</value></data>
+  <data name="JoinCodePlaceholder" xml:space="preserve"><value>Kod sobe</value></data>
+  <data name="Join" xml:space="preserve"><value>Pridruži se</value></data>
+  <data name="NicknameInvalid" xml:space="preserve"><value>Upiši nadimak (1 do 24 znaka).</value></data>
+  <data name="CodeRequired" xml:space="preserve"><value>Upiši kod sobe.</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Zatvori</value></data>
+  <data name="Lobby" xml:space="preserve"><value>Čekaonica</value></data>
+  <data name="RoomCode" xml:space="preserve"><value>Kod sobe</value></data>
+  <data name="Copy" xml:space="preserve"><value>Kopiraj</value></data>
+  <data name="Copied" xml:space="preserve"><value>Kopirano</value></data>
+  <data name="Players" xml:space="preserve"><value>Igrači</value></data>
+  <data name="Host" xml:space="preserve"><value>domaćin</value></data>
+  <data name="Npc" xml:space="preserve"><value>NPC</value></data>
+  <data name="You" xml:space="preserve"><value>ti</value></data>
+  <data name="BoardSize" xml:space="preserve"><value>Veličina ploče</value></data>
+  <data name="AddNpc" xml:space="preserve"><value>Dodaj NPC</value></data>
+  <data name="RemoveNpc" xml:space="preserve"><value>Ukloni</value></data>
+  <data name="StartGame" xml:space="preserve"><value>Pokreni igru</value></data>
+  <data name="LeaveRoom" xml:space="preserve"><value>Izađi iz sobe</value></data>
+  <data name="WaitingForHost" xml:space="preserve"><value>Čekamo da domaćin pokrene igru.</value></data>
+  <data name="StartRule" xml:space="preserve"><value>Za početak treba najmanje 2 igrača (najviše 4, ljudi i NPC zajedno).</value></data>
+  <data name="YourTurn" xml:space="preserve"><value>Tvoj je red. Odaberi pijuna.</value></data>
+  <data name="Legend" xml:space="preserve"><value>Legenda tema</value></data>
+  <data name="PawnsLeft" xml:space="preserve"><value>pijuna</value></data>
+  <data name="OnTurn" xml:space="preserve"><value>na redu</value></data>
+  <data name="Notices" xml:space="preserve"><value>Događaji</value></data>
+  <data name="Board" xml:space="preserve"><value>Ploča</value></data>
+  <data name="Question" xml:space="preserve"><value>Pitanje</value></data>
+  <data name="Duel" xml:space="preserve"><value>Dvoboj</value></data>
+  <data name="TimeUp" xml:space="preserve"><value>Vrijeme je isteklo.</value></data>
+  <data name="Seconds" xml:space="preserve"><value>s</value></data>
+  <data name="Correct" xml:space="preserve"><value>Točan odgovor</value></data>
+  <data name="Wrong" xml:space="preserve"><value>Netočan odgovor</value></data>
+  <data name="DuelOutcome" xml:space="preserve"><value>Ishod dvoboja</value></data>
+  <data name="DuelAborted" xml:space="preserve"><value>Dvoboj je prekinut.</value></data>
+  <data name="DuelWon" xml:space="preserve"><value>Dvoboj je dobiven.</value></data>
+  <data name="GameOver" xml:space="preserve"><value>Igra je završena</value></data>
+  <data name="NewGame" xml:space="preserve"><value>Nova igra</value></data>
+  <data name="Winner" xml:space="preserve"><value>Pobjednik</value></data>
+  <data name="NoWinner" xml:space="preserve"><value>Nema pobjednika.</value></data>
+  <data name="OnTurnPlayer" xml:space="preserve"><value>Na redu je {0}</value></data>
+  <data name="PlayerAnswering" xml:space="preserve"><value>Igrač {0} odgovara na pitanje</value></data>
+  <data name="QuestionOf" xml:space="preserve"><value>{0}/{1}</value></data>
+  <data name="RoomBoard" xml:space="preserve"><value>{0} × {0}</value></data>
+  <data name="WinnerIs" xml:space="preserve"><value>Pobjednik je {0}!</value></data>
+  <data name="PawnMoved" xml:space="preserve"><value>{0}: pijun je pomaknut</value></data>
+  <data name="PawnCapturedOf" xml:space="preserve"><value>Pijun igrača {0} je uhvaćen</value></data>
+  <data name="PawnStayed" xml:space="preserve"><value>{0}: netočan odgovor, pijun ostaje</value></data>
+  <data name="PlayerJoined" xml:space="preserve"><value>{0} je ušao u sobu</value></data>
+  <data name="PlayerDisconnected" xml:space="preserve"><value>{0} se odspojio.</value></data>
+  <data name="NpcTakeover" xml:space="preserve"><value>NPC je preuzeo pijune igrača {0}.</value></data>
+  <data name="PlayerReturned" xml:space="preserve"><value>{0} se vratio.</value></data>
+  <data name="Notice_notfound" xml:space="preserve"><value>Soba ne postoji ili je istekla.</value></data>
+  <data name="Notice_finished" xml:space="preserve"><value>Igra je završena.</value></data>
+  <data name="Notice_notmember" xml:space="preserve"><value>Nisi član te sobe. Pridruži se kodom.</value></data>
+  <data name="Notice_left" xml:space="preserve"><value>Napustio si sobu.</value></data>
+  <data name="Theme_Geography" xml:space="preserve"><value>Geografija</value></data>
+  <data name="Theme_History" xml:space="preserve"><value>Povijest</value></data>
+  <data name="Theme_Math" xml:space="preserve"><value>Matematika</value></data>
+  <data name="Theme_Science" xml:space="preserve"><value>Znanost</value></data>
+  <data name="Theme_Sports" xml:space="preserve"><value>Sport</value></data>
+  <data name="Theme_Art" xml:space="preserve"><value>Umjetnost</value></data>
+  <data name="Theme_Literature" xml:space="preserve"><value>Književnost</value></data>
+  <data name="Theme_Entertainment" xml:space="preserve"><value>Zabava</value></data>
+  <data name="Outcome_Moved" xml:space="preserve"><value>Pijun je pomaknut.</value></data>
+  <data name="Outcome_Captured" xml:space="preserve"><value>Pijun je uhvaćen.</value></data>
+  <data name="Outcome_Stayed" xml:space="preserve"><value>Pijun ostaje na mjestu.</value></data>
+  <data name="Error_RoomNotFound" xml:space="preserve"><value>Soba s tim kodom ne postoji.</value></data>
+  <data name="Error_RoomFull" xml:space="preserve"><value>Soba je puna (najviše 4 igrača).</value></data>
+  <data name="Error_NotInLobby" xml:space="preserve"><value>Igra u toj sobi je već počela.</value></data>
+  <data name="Error_NotHost" xml:space="preserve"><value>Samo domaćin to može napraviti.</value></data>
+  <data name="Error_NotInProgress" xml:space="preserve"><value>Igra nije u tijeku.</value></data>
+  <data name="Error_NotEnoughPlayers" xml:space="preserve"><value>Za početak treba najmanje 2 igrača.</value></data>
+  <data name="Error_PlayerNotInRoom" xml:space="preserve"><value>Nisi član ove sobe.</value></data>
+  <data name="Error_NotYourTurn" xml:space="preserve"><value>Nisi na redu.</value></data>
+  <data name="Error_PawnNotOwned" xml:space="preserve"><value>To nije tvoj pijun.</value></data>
+  <data name="Error_InvalidMove" xml:space="preserve"><value>Taj potez nije dopušten.</value></data>
+  <data name="Error_InvalidName" xml:space="preserve"><value>Nadimak mora imati 1 do 24 znaka.</value></data>
+  <data name="Error_InvalidBoardSize" xml:space="preserve"><value>Veličina ploče nije dopuštena.</value></data>
+  <data name="Error_InvalidAnswer" xml:space="preserve"><value>Neispravan odgovor.</value></data>
+  <data name="Error_NoPendingQuestion" xml:space="preserve"><value>Nema otvorenog pitanja.</value></data>
+  <data name="Error_QuestionPending" xml:space="preserve"><value>Pitanje je već otvoreno.</value></data>
+  <data name="Error_QuestionsUnavailable" xml:space="preserve"><value>Pitanja trenutno nisu dostupna.</value></data>
+  <data name="Error_TooManyRooms" xml:space="preserve"><value>Trenutno je previše aktivnih soba. Pokušaj kasnije.</value></data>
+  <data name="Error_PersistenceFailed" xml:space="preserve"><value>Spremanje nije uspjelo. Pokušaj ponovno.</value></data>
+  <data name="Error_Unknown" xml:space="preserve"><value>Dogodila se greška.</value></data>
+  <data name="Language" xml:space="preserve"><value>Jezik</value></data>
+  <data name="Menu" xml:space="preserve"><value>Izbornik</value></data>
+  <data name="Leaderboard" xml:space="preserve"><value>Ljestvica</value></data>
+  <data name="Disconnected" xml:space="preserve"><value>odspojen</value></data>
+  <data name="WaitingForRestart" xml:space="preserve"><value>Čekamo da domaćin pokrene novu igru.</value></data>
+  <data name="Summary" xml:space="preserve"><value>Sažetak igre</value></data>
+  <data name="PageNotFound" xml:space="preserve"><value>Stranica nije pronađena.</value></data>
+  <data name="Rank" xml:space="preserve"><value>Mjesto</value></data>
+  <data name="Player" xml:space="preserve"><value>Igrač</value></data>
+  <data name="Wins" xml:space="preserve"><value>Pobjede</value></data>
+  <data name="GamesPlayed" xml:space="preserve"><value>Odigrane igre</value></data>
+  <data name="WinPercentage" xml:space="preserve"><value>Postotak pobjeda</value></data>
+  <data name="LastPlayed" xml:space="preserve"><value>Zadnja igra</value></data>
+  <data name="LeaderboardEmpty" xml:space="preserve"><value>Još nema odigranih igara.</value></data>
+  <data name="LeaderboardError" xml:space="preserve"><value>Ljestvica trenutno nije dostupna. Pokušaj kasnije.</value></data>
+  <data name="Loading" xml:space="preserve"><value>Učitavanje…</value></data>
+</root>

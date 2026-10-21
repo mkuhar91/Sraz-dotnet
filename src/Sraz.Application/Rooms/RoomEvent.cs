@@ -13,7 +13,10 @@ public enum RoomEventType
     GameFinished,
     ActionResolved,
     SettingsChanged,
-    QuestionStarted
+    QuestionStarted,
+    PlayerDisconnected,
+    NpcTakeover,
+    PlayerReturned
 }
 
 /// <summary>Notification published by a room. Carries no question or answer data.</summary>

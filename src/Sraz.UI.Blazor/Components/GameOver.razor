@@ -9,12 +9,29 @@
     {
         <p>@Texts.NoWinner</p>
     }
-    <button type="button" class="primary" @onclick="OnNewGame">@Texts.NewGame</button>
+    <h3>@Texts["Summary"]</h3>
+    <ul class="game-summary">
+        @foreach (var player in View.Players)
+        {
+            <li>@player.Name @if (player.IsNpc) { <span class="badge">@Texts.Npc</span> } — @player.PawnsRemaining @Texts.PawnsLeft</li>
+        }
+    </ul>
+    @if (View.IsViewerHost)
+    {
+        <button type="button" class="primary" disabled="@Disabled" @onclick="OnNewGame">@Texts.NewGame</button>
+    }
+    else
+    {
+        <p>@Texts["WaitingForRestart"]</p>
+    }
+    <a href="/leaderboard">@Texts["Leaderboard"]</a>
+    <a href="/">@Texts["Menu"]</a>
 </section>
 
 @code {
     [Parameter, EditorRequired] public BoardViewDto View { get; set; } = default!;
     [Parameter] public EventCallback OnNewGame { get; set; }
+    [Parameter] public bool Disabled { get; set; }
 
     private PlayerViewDto? Winner => View.WinnerIndex is { } index && index >= 0 && index < View.Players.Count ? View.Players[index] : null;
 }

@@ -1,125 +1,81 @@
+using Microsoft.Extensions.Localization;
 using Sraz.Application.Rooms;
 using Sraz.Domain.Models;
 
 namespace Sraz.UI.Blazor.Localization;
 
-/// <summary>Single source of UI strings (Croatian for now; prepared for localization in phase 4).</summary>
-public static class Texts
+public sealed class Texts(IStringLocalizer<Texts> localizer)
 {
-    public const string AppName = "Sraz";
-    public const string Tagline = "Kviz s pločom za 2 do 4 igrača";
+    public string this[string key] => localizer[key];
+    public string AppName => this[nameof(AppName)];
+    public string Tagline => this[nameof(Tagline)];
+    public string Nickname => this[nameof(Nickname)];
+    public string NicknamePlaceholder => this[nameof(NicknamePlaceholder)];
+    public string CreateRoom => this[nameof(CreateRoom)];
+    public string JoinRoomHeading => this[nameof(JoinRoomHeading)];
+    public string JoinCode => this[nameof(JoinCode)];
+    public string JoinCodePlaceholder => this[nameof(JoinCodePlaceholder)];
+    public string Join => this[nameof(Join)];
+    public string NicknameInvalid => this[nameof(NicknameInvalid)];
+    public string CodeRequired => this[nameof(CodeRequired)];
+    public string Dismiss => this[nameof(Dismiss)];
+    public string Lobby => this[nameof(Lobby)];
+    public string RoomCode => this[nameof(RoomCode)];
+    public string Copy => this[nameof(Copy)];
+    public string Copied => this[nameof(Copied)];
+    public string Players => this[nameof(Players)];
+    public string Host => this[nameof(Host)];
+    public string Npc => this[nameof(Npc)];
+    public string You => this[nameof(You)];
+    public string BoardSize => this[nameof(BoardSize)];
+    public string AddNpc => this[nameof(AddNpc)];
+    public string RemoveNpc => this[nameof(RemoveNpc)];
+    public string StartGame => this[nameof(StartGame)];
+    public string LeaveRoom => this[nameof(LeaveRoom)];
+    public string WaitingForHost => this[nameof(WaitingForHost)];
+    public string StartRule => this[nameof(StartRule)];
+    public string YourTurn => this[nameof(YourTurn)];
+    public string Legend => this[nameof(Legend)];
+    public string PawnsLeft => this[nameof(PawnsLeft)];
+    public string OnTurn => this[nameof(OnTurn)];
+    public string Notices => this[nameof(Notices)];
+    public string Board => this[nameof(Board)];
+    public string Question => this[nameof(Question)];
+    public string Duel => this[nameof(Duel)];
+    public string TimeUp => this[nameof(TimeUp)];
+    public string Seconds => this[nameof(Seconds)];
+    public string Correct => this[nameof(Correct)];
+    public string Wrong => this[nameof(Wrong)];
+    public string DuelOutcome => this[nameof(DuelOutcome)];
+    public string DuelAborted => this[nameof(DuelAborted)];
+    public string DuelWon => this[nameof(DuelWon)];
+    public string GameOver => this[nameof(GameOver)];
+    public string NewGame => this[nameof(NewGame)];
+    public string Winner => this[nameof(Winner)];
+    public string NoWinner => this[nameof(NoWinner)];
+    public string OnTurnPlayer(string name) => localizer[nameof(OnTurnPlayer), name];
+    public string PlayerAnswering(string name) => localizer[nameof(PlayerAnswering), name];
+    public string QuestionOf(int number, int total) => localizer[nameof(QuestionOf), number, total];
+    public string RoomBoard(int size) => localizer[nameof(RoomBoard), size];
+    public string WinnerIs(string name) => localizer[nameof(WinnerIs), name];
+    public string PawnMoved(string name) => localizer[nameof(PawnMoved), name];
+    public string PawnCapturedOf(string name) => localizer[nameof(PawnCapturedOf), name];
+    public string PawnStayed(string name) => localizer[nameof(PawnStayed), name];
+    public string PlayerJoined(string name) => localizer[nameof(PlayerJoined), name];
+    public string PlayerDisconnected(string name) => localizer[nameof(PlayerDisconnected), name];
+    public string NpcTakeover(string name) => localizer[nameof(NpcTakeover), name];
+    public string PlayerReturned(string name) => localizer[nameof(PlayerReturned), name];
 
-    public const string Nickname = "Nadimak";
-    public const string NicknamePlaceholder = "Upiši svoj nadimak";
-    public const string CreateRoom = "Stvori sobu";
-    public const string JoinRoomHeading = "Pridruži se sobi";
-    public const string JoinCode = "Pridruži se kodu";
-    public const string JoinCodePlaceholder = "Kod sobe";
-    public const string Join = "Pridruži se";
-    public const string NicknameInvalid = "Upiši nadimak (1 do 24 znaka).";
-    public const string CodeRequired = "Upiši kod sobe.";
-    public const string Dismiss = "Zatvori";
-
-    public const string Lobby = "Čekaonica";
-    public const string RoomCode = "Kod sobe";
-    public const string Copy = "Kopiraj";
-    public const string Copied = "Kopirano";
-    public const string Players = "Igrači";
-    public const string Host = "domaćin";
-    public const string Npc = "NPC";
-    public const string You = "ti";
-    public const string BoardSize = "Veličina ploče";
-    public const string AddNpc = "Dodaj NPC";
-    public const string RemoveNpc = "Ukloni";
-    public const string StartGame = "Pokreni igru";
-    public const string LeaveRoom = "Izađi iz sobe";
-    public const string WaitingForHost = "Čekamo da domaćin pokrene igru.";
-    public const string StartRule = "Za početak treba najmanje 2 igrača (najviše 4, ljudi i NPC zajedno).";
-
-    public const string YourTurn = "Tvoj je red. Odaberi pijuna.";
-    public const string Legend = "Legenda tema";
-    public const string PawnsLeft = "pijuna";
-    public const string OnTurn = "na redu";
-    public const string Notices = "Događaji";
-    public const string Board = "Ploča";
-    public const string AnswersQuestion = "odgovara na pitanje";
-
-    public const string Question = "Pitanje";
-    public const string Duel = "Dvoboj";
-    public const string TimeUp = "Vrijeme je isteklo.";
-    public const string Seconds = "s";
-    public const string Correct = "Točan odgovor";
-    public const string Wrong = "Netočan odgovor";
-    public const string DuelOutcome = "Ishod dvoboja";
-    public const string DuelAborted = "Dvoboj je prekinut.";
-    public const string DuelWon = "Dvoboj je dobiven.";
-
-    public const string GameOver = "Igra je završena";
-    public const string NewGame = "Nova igra";
-    public const string Winner = "Pobjednik";
-    public const string NoWinner = "Nema pobjednika.";
-
-
-    public static string OnTurnPlayer(string name) => $"Na redu je {name}";
-    public static string PlayerAnswering(string name) => $"Igrač {name} odgovara na pitanje";
-    public static string QuestionOf(int number, int total) => $"{number}/{total}";
-    public static string RoomBoard(int size) => $"{size} × {size}";
-    public static string WinnerIs(string name) => $"Pobjednik je {name}!";
-    public static string PawnMoved(string name) => $"{name}: pijun je pomaknut";
-    public static string PawnCapturedOf(string name) => $"Pijun igrača {name} je uhvaćen";
-    public static string PawnStayed(string name) => $"{name}: netočan odgovor, pijun ostaje";
-    public static string PlayerJoined(string name) => $"{name} je ušao u sobu";
-
-    public static string Notice(string? key) => key switch
+    public string Notice(string? key) => key is "notfound" or "finished" or "notmember" or "left"
+        ? this[$"Notice_{key}"] : string.Empty;
+    public string Theme(QuestionTheme theme) => this[$"Theme_{theme}"];
+    public string Category(string category) =>
+        Enum.TryParse<QuestionTheme>(category, out var theme) ? Theme(theme) : category;
+    public string Outcome(MoveOutcome? outcome) => outcome is MoveOutcome.Moved or MoveOutcome.Captured or MoveOutcome.Stayed
+        ? this[$"Outcome_{outcome}"] : string.Empty;
+    public string Error(RoomError error)
     {
-        "notfound" => "Soba ne postoji ili je istekla.",
-        "finished" => "Igra je završena.",
-        "notmember" => "Nisi član te sobe. Pridruži se kodom.",
-        "left" => "Napustio si sobu.",
-        _ => string.Empty
-    };
-
-    public static string Theme(QuestionTheme theme) => theme switch
-    {
-        QuestionTheme.Geography => "Geografija",
-        QuestionTheme.History => "Povijest",
-        QuestionTheme.Math => "Matematika",
-        QuestionTheme.Science => "Znanost",
-        QuestionTheme.Sports => "Sport",
-        QuestionTheme.Art => "Umjetnost",
-        QuestionTheme.Literature => "Književnost",
-        QuestionTheme.Entertainment => "Zabava",
-        _ => theme.ToString()
-    };
-
-    public static string Outcome(MoveOutcome? outcome) => outcome switch
-    {
-        MoveOutcome.Moved => "Pijun je pomaknut.",
-        MoveOutcome.Captured => "Pijun je uhvaćen.",
-        MoveOutcome.Stayed => "Pijun ostaje na mjestu.",
-        _ => string.Empty
-    };
-
-    public static string Error(RoomError error) => error switch
-    {
-        RoomError.RoomNotFound => "Soba s tim kodom ne postoji.",
-        RoomError.RoomFull => "Soba je puna (najviše 4 igrača).",
-        RoomError.NotInLobby => "Igra u toj sobi je već počela.",
-        RoomError.NotHost => "Samo domaćin to može napraviti.",
-        RoomError.NotInProgress => "Igra nije u tijeku.",
-        RoomError.NotEnoughPlayers => "Za početak treba najmanje 2 igrača.",
-        RoomError.PlayerNotInRoom => "Nisi član ove sobe.",
-        RoomError.NotYourTurn => "Nisi na redu.",
-        RoomError.PawnNotOwned => "To nije tvoj pijun.",
-        RoomError.InvalidMove => "Taj potez nije dopušten.",
-        RoomError.InvalidName => "Nadimak mora imati 1 do 24 znaka.",
-        RoomError.InvalidBoardSize => "Veličina ploče nije dopuštena.",
-        RoomError.InvalidAnswer => "Neispravan odgovor.",
-        RoomError.NoPendingQuestion => "Nema otvorenog pitanja.",
-        RoomError.QuestionPending => "Pitanje je već otvoreno.",
-        RoomError.QuestionsUnavailable => "Pitanja trenutno nisu dostupna.",
-        RoomError.TooManyRooms => "Trenutno je previše aktivnih soba. Pokušaj kasnije.",
-        RoomError.PersistenceFailed => "Spremanje nije uspjelo. Pokušaj ponovno.",
-        _ => "Dogodila se greška."
-    };
+        var value = localizer[$"Error_{error}"];
+        return value.ResourceNotFound ? this["Error_Unknown"] : value.Value;
+    }
 }

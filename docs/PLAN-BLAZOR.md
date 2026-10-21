@@ -170,3 +170,36 @@ Samo serverska logika, bez UI-ja (UI je faza 3, odspajanje/NPC preuzimanje i lje
 5. Na igraču koji je na redu klikni vlastitog pijuna: dopuštena polja dobiju crni okvir. Klikni polje, odgovori na pitanje (odbrojavanje od 30 s). Drugi igrač vidi "Igrač X odgovara na pitanje".
 6. Pokušaj pridruživanje s trećeg preglednika nakon početka igre i s krivim kodom: očekuje se poruka o grešci.
 7. Provjeri na mobitelu (ili u responzivnom načinu preglednika) da je ploča čitljiva i klikabilna.
+
+## 17. Status faze 4: odspajanje, ljestvica i lokalizacija
+
+- Veze se prate preko Blazor circuita i cookie identiteta. Više kartica istog preglednika predstavlja istog igrača; odspojen je tek kad nema nijednu aktivnu vezu.
+- Odspojeni igrač ima 60 s za povratak. Istek otvorenog pitanja od 30 s može ranije pokrenuti NPC preuzimanje; istek pitanja i dalje je netočan odgovor. NPC koristi postojeću strategiju, bez promjene pravila igre.
+- Povratnik kojem je NPC već preuzeo pijune ponovno dobiva kontrolu tek na početku sljedećeg vlastitog reda. Popis igrača i obavijesti prikazuju odspajanje, preuzimanje i povratak.
+- Dok nema spojenih ljudi, NPC radi najviše jedan korak po sekundnom mjeraču. Autonomni potezi ne produžuju neaktivnost sobe; obrada staje po isteku sobe ili kad nijedan preostali ljudski sudionik nema pijune kojima bi se mogao vratiti.
+- Snapshot v2 pamti odspajanje, vrijeme odspajanja, izvorni identitet i identitet partije; snapshot v1 ostaje čitljiv. Poslije restarta prethodne veze više nisu aktivne.
+- Rezultati se spremaju u PostgreSQL uz završni snapshot. Identitet partije sprječava ponovni upis istog rezultata. Svim ljudskim sudionicima broji se odigrana igra; NPC preuzimatelj ne donosi pobjedu izvornom igraču.
+- Završni panel prikazuje pobjednika i sažetak, izlaz i ljestvicu. Domaćin gumbom „Nova igra” vraća cijelu sobu u lobby s istim igračima.
+- HR/EN tekstovi koriste `IStringLocalizer` i `.resx` resurse; zadani je hrvatski, a izbor jezika u zaglavlju pamti se u cookieju. Tekst pitanja ostaje iz baze na hrvatskom.
+- WPF ostaje na svojoj JSON pohrani i postojećoj lokalizaciji.
+
+### Ručno testiranje odspajanja i povratka
+
+1. Pokreni PostgreSQL i Blazor (`docker compose up --build`), otvori sobu u dva različita preglednika ili u običnom i anonimnom prozoru. Zadrži drugog igrača spojenim radi praćenja obavijesti.
+2. Zatvori karticu prvog igrača. Drugi preglednik mora prikazati odspajanje. Vrati istu karticu/preglednik s istim cookiejima i kodom sobe prije 60 s: igrač ne smije postati NPC.
+3. Ponovi zatvaranje, pričekaj najmanje 60 s pa se vrati. Drugi preglednik mora prikazati NPC preuzimanje; povratnik vidi igru, ali kontrolu dobiva tek na početku sljedećeg vlastitog reda.
+4. Otvori pitanje prvog igrača pa zatvori karticu. Nakon isteka 30 s odgovor je netočan i NPC odmah preuzima, bez čekanja 60 s.
+5. Otvori dvije kartice istog igrača, zatvori samo jednu: igrač ostaje spojen. Odspajanje mora nastupiti tek nakon zatvaranja druge.
+6. Tijekom odspajanja ponovno pokreni server. Ponovno otvori sobu s istim cookiejem; provjeri očuvanje identiteta/pijuna i da restart nije obnovio punih 60 s već odspojenom igraču.
+7. Dovrši igru i provjeri ljestvicu: po jedna odigrana igra svakom čovjeku, pobjeda samo ljudskom pobjedniku. Ponovno učitavanje završnog panela ili restart ne smije udvostručiti rezultat.
+8. Klikni „Nova igra” kao domaćin: svi povezani igrači prelaze u isti lobby. Promijeni jezik na engleski, osvježi stranicu i provjeri očuvanje izbora, prevedene greške i ljestvicu; pitanja se ne prevode.
+9. Zatvori sve kartice: NPC rad mora biti ograničen, a soba se mora obrisati po isteku konfiguriranog vremena neaktivnosti (`Rooms:InactivityTimeout`); NPC potezi ne produžuju ljudsku aktivnost.
+
+### Automatske provjere
+
+```bash
+dotnet build Sraz.sln -p:EnableWindowsTargeting=true
+dotnet test tests/Sraz.Tests/Sraz.Tests.csproj
+```
+
+PostgreSQL integracijski testovi uključuju konkurentne upise, oporavak nakon ponovnog stvaranja servisa, jedinstveni ključ i povrat transakcije pri grešci. Za njih postavi `SRAZ_TEST_POSTGRES` na connection string zasebne testne baze (izvan repozitorija) prije `dotnet test`; korisnik baze mora moći stvarati i brisati testne sheme. Bez te varijable samo se ti integracijski testovi preskaču.

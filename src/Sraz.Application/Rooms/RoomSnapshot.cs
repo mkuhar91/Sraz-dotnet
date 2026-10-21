@@ -6,7 +6,7 @@ namespace Sraz.Application.Rooms;
 
 public sealed class RoomSnapshot
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string Code { get; set; } = string.Empty;
@@ -18,6 +18,8 @@ public sealed class RoomSnapshot
     public DateTimeOffset LastActivityUtc { get; set; }
     public List<PlayerSnapshot> Players { get; set; } = new();
     public GameSnapshot? Game { get; set; }
+    public Guid? GameId { get; set; }
+    public RoomGameResultSnapshot? Result { get; set; }
 }
 
 public sealed class PlayerSnapshot
@@ -25,6 +27,24 @@ public sealed class PlayerSnapshot
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsNpc { get; set; }
+    public DateTimeOffset? DisconnectedAtUtc { get; set; }
+    public Guid? OriginalPlayerId { get; set; }
+    [JsonIgnore]
+    public bool IsDisconnected => DisconnectedAtUtc is not null;
+}
+
+public sealed class RoomGameResultSnapshot
+{
+    public Guid GameId { get; set; }
+    public DateTimeOffset FinishedAtUtc { get; set; }
+    public List<RoomPlayerResultSnapshot> Players { get; set; } = new();
+}
+
+public sealed class RoomPlayerResultSnapshot
+{
+    public Guid PlayerId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool Won { get; set; }
 }
 
 public sealed class GameSnapshot

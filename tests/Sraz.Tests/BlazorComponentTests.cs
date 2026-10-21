@@ -4,6 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Sraz.Application.Rooms;
 using Sraz.Domain.Models;
 using Sraz.UI.Blazor.Components;
+using Sraz.UI.Blazor.Localization;
 using Xunit;
 using BoardComponent = Sraz.UI.Blazor.Components.Board;
 
@@ -14,7 +15,12 @@ public sealed class BlazorComponentTests : TestContext
     private static readonly DateTimeOffset Start = new(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
     private readonly FakeTimeProvider _time = new(Start);
 
-    public BlazorComponentTests() => Services.AddSingleton<TimeProvider>(_time);
+    public BlazorComponentTests()
+    {
+        Services.AddSingleton<TimeProvider>(_time);
+        Services.AddLocalization();
+        Services.AddScoped<Texts>();
+    }
 
     private static readonly Guid Mine = Guid.NewGuid();
     private static readonly Guid Acted = Guid.NewGuid();

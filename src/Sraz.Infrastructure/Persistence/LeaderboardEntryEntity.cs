@@ -3,6 +3,9 @@ namespace Sraz.Infrastructure.Persistence;
 public sealed class LeaderboardEntryEntity
 {
     public long Id { get; set; }
+    public Guid? GameId { get; set; }
+    public Guid? PlayerId { get; set; }
+    public bool Won { get; set; }
     public string PlayerName { get; set; } = string.Empty;
     public int Score { get; set; }
     public int CorrectAnswers { get; set; }

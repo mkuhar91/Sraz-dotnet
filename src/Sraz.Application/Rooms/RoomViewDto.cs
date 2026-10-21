@@ -9,7 +9,9 @@ public sealed record PlayerViewDto(
     string Color,
     bool IsNpc,
     bool IsHost,
-    int PawnsRemaining);
+    int PawnsRemaining,
+    bool IsDisconnected = false,
+    Guid? OriginalPlayerId = null);
 
 public sealed record PawnViewDto(
     Guid Id,
@@ -40,6 +42,6 @@ public sealed record BoardViewDto(
     IReadOnlyList<MoveTargetDto> AllowedMoves)
 {
     public bool IsViewerHost => ViewerIndex >= 0 && Players[ViewerIndex].IsHost;
-    public bool IsViewerTurn => ViewerIndex >= 0 && ViewerIndex == CurrentPlayerIndex;
+    public bool IsViewerTurn => ViewerIndex >= 0 && ViewerIndex == CurrentPlayerIndex && !Players[ViewerIndex].IsNpc;
     public PlayerViewDto? Host => Players.FirstOrDefault(player => player.IsHost);
 }

@@ -11,7 +11,8 @@ public sealed class GameRoom : IDisposable
 {
     public const int MaxPlayers = 4;
     public const int MaxBoardSize = 20;
-    private const int MaxNpcStepsPerDrive = 5000;
+    private const int MaxNpcStepsPerDrive = 64;
+    private static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromSeconds(60);
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly RoomServices _services;
@@ -27,8 +28,13 @@ public sealed class GameRoom : IDisposable
     private long _lastActivityTicks;
     private PendingAction? _pending;
     private Task _lastTimeoutTask = Task.CompletedTask;
+    private ITimer? _maintenanceTimer;
+    private Guid? _gameId;
+    private RoomGameResultSnapshot? _result;
+    private bool _closed;
 
-    private sealed record RoomPlayer(Guid Id, string Name, bool IsNpc);
+    private sealed record RoomPlayer(Guid Id, string Name, bool IsNpc,
+        DateTimeOffset? DisconnectedAtUtc = null, Guid? OriginalPlayerId = null);
 
     private sealed record PendingAction(
         Guid PawnId,
@@ -125,6 +131,74 @@ public sealed class GameRoom : IDisposable
     /// <summary>Completes once any timeout that has fired has been processed (intended for tests).</summary>
     public Task WaitForTimeoutHandlingAsync() => _lastTimeoutTask;
 
+    public Task<RoomResult> SetConnectedAsync(Guid playerId, bool connected, CancellationToken cancellationToken = default) =>
+        RunLockedAsync(async events =>
+        {
+            var index = MemberIndex(playerId);
+            if (index < 0)
+            {
+                return RoomResult.Fail(RoomError.PlayerNotInRoom);
+            }
+
+            var player = _players[index];
+            if (connected == (player.DisconnectedAtUtc is null))
+            {
+                return RoomResult.Ok;
+            }
+
+            var before = Capture();
+            _players[index] = player with { DisconnectedAtUtc = connected ? null : _services.Time.GetUtcNow() };
+            if (connected)
+            {
+                Touch();
+            }
+
+            if (!await TryPersistAsync(before, _pending, cancellationToken))
+            {
+                return RoomResult.Fail(RoomError.PersistenceFailed);
+            }
+
+            events.Add(new RoomEvent(connected ? RoomEventType.PlayerReturned : RoomEventType.PlayerDisconnected,
+                Code, index, playerId));
+            await DriveNpcAsync(events, cancellationToken);
+            return RoomResult.Ok;
+        }, cancellationToken);
+
+    public Task<RoomResult> RestartAsync(Guid requesterId, CancellationToken cancellationToken = default) =>
+        RunLockedAsync(async events =>
+        {
+            if (MemberIndex(requesterId) < 0)
+            {
+                return RoomResult.Fail(RoomError.PlayerNotInRoom);
+            }
+
+            if (requesterId != _hostId)
+            {
+                return RoomResult.Fail(RoomError.NotHost);
+            }
+
+            if (State != RoomState.Finished)
+            {
+                return RoomResult.Fail(RoomError.NotInLobby);
+            }
+
+            var before = Capture();
+            _players = _players.Select(player => player.OriginalPlayerId is null ? player :
+                player with { IsNpc = false, OriginalPlayerId = null }).ToList();
+            _engine = NewEngine();
+            _gameId = null;
+            _result = null;
+            Volatile.Write(ref _state, (int)RoomState.Lobby);
+            Touch();
+            if (!await TryPersistAsync(before, null, cancellationToken))
+            {
+                return RoomResult.Fail(RoomError.PersistenceFailed);
+            }
+
+            events.Add(new RoomEvent(RoomEventType.SettingsChanged, Code));
+            return RoomResult.Ok;
+        }, cancellationToken);
+
     public void Close()
     {
         _gate.Wait();
@@ -132,6 +206,9 @@ public sealed class GameRoom : IDisposable
         {
             _pending?.Timer.Dispose();
             _pending = null;
+            _closed = true;
+            _maintenanceTimer?.Dispose();
+            _maintenanceTimer = null;
         }
         finally
         {
@@ -164,10 +241,11 @@ public sealed class GameRoom : IDisposable
         }
     }
 
-    public static async Task<GameRoom> RestoreAsync(RoomSnapshot snapshot, RoomServices services, CancellationToken cancellationToken = default)
+    public static async Task<GameRoom> RestoreAsync(RoomSnapshot snapshot, RoomServices services,
+        CancellationToken cancellationToken = default, bool disconnectPlayers = false)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        if (snapshot.SchemaVersion != RoomSnapshot.CurrentSchemaVersion || string.IsNullOrWhiteSpace(snapshot.Code))
+        if (snapshot.SchemaVersion is < 1 or > RoomSnapshot.CurrentSchemaVersion || string.IsNullOrWhiteSpace(snapshot.Code))
         {
             throw new InvalidOperationException("Unsupported room snapshot.");
         }
@@ -178,26 +256,46 @@ public sealed class GameRoom : IDisposable
         await room._gate.WaitAsync(cancellationToken);
         try
         {
+            if (disconnectPlayers)
+            {
+                room._players = room._players.Select(player => !player.IsNpc || player.OriginalPlayerId is not null
+                    ? player with { DisconnectedAtUtc = player.DisconnectedAtUtc ?? services.Time.GetUtcNow() }
+                    : player).ToList();
+                if (snapshot.Game?.Pending is null)
+                {
+                    await services.Store.SaveAsync(room.Capture(), cancellationToken);
+                }
+            }
+
             if (room.State == RoomState.InProgress)
             {
-                if (snapshot.Game?.Pending is { } pending && room.FindPawn(pending.PawnId) is { } pawn)
+                if (snapshot.Game?.Pending is { } pending)
                 {
+                    var pawn = room.FindPawn(pending.PawnId) ??
+                        throw new InvalidOperationException("The saved pending action is invalid.");
                     // A question that was open when the server stopped counts as incorrect.
                     var answers = pending.IsDuel ? pending.Answers.Append(false).ToList() : new List<bool> { false };
+                    if (room._players[room._engine.CurrentPlayerIndex].DisconnectedAtUtc is not null &&
+                        pending.DeadlineUtc <= services.Time.GetUtcNow())
+                    {
+                        room.TakeOver(room._engine.CurrentPlayerIndex);
+                    }
                     var step = room.Resolve(pawn, pending.Direction, pending.IsDuel, answers);
-                    room.Touch();
-                    try
-                    {
-                        await services.Store.SaveAsync(room.Capture(), cancellationToken);
-                        events.AddRange(step);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                    }
+                    await services.Store.SaveAsync(room.Capture(), cancellationToken);
+                    events.AddRange(step);
                 }
 
+                await room.TakeOverExpiredAsync(events);
                 await room.DriveNpcAsync(events, cancellationToken);
             }
+            room.ScheduleMaintenance();
+        }
+        catch
+        {
+            room._closed = true;
+            room._pending?.Timer.Dispose();
+            room._maintenanceTimer?.Dispose();
+            throw;
         }
         finally
         {
@@ -211,7 +309,7 @@ public sealed class GameRoom : IDisposable
     public Task<RoomResult> JoinAsync(Guid playerId, string name, CancellationToken cancellationToken = default) =>
         RunLockedAsync(async events =>
         {
-            if (HumanIndex(playerId) >= 0)
+            if (MemberIndex(playerId) >= 0)
             {
                 return RoomResult.Ok;
             }
@@ -351,6 +449,8 @@ public sealed class GameRoom : IDisposable
             }
 
             var before = Capture();
+            _gameId = Guid.NewGuid();
+            _result = null;
             _engine.StartGame(_players.Select(player => (player.Name, player.IsNpc)).ToList(), _boardSize, _seed);
             Volatile.Write(ref _state, (int)RoomState.InProgress);
             Touch();
@@ -463,11 +563,12 @@ public sealed class GameRoom : IDisposable
 
             var correct = selectedIndex == question.CorrectOptionIndex &&
                 _services.Time.GetUtcNow() < pending.Deadline;
-            return await ResolveAnswerAsync(pending, correct, events, cancellationToken);
+            return await ResolveAnswerAsync(pending, correct, events, cancellationToken,
+                timedOut: _services.Time.GetUtcNow() >= pending.Deadline);
         }, cancellationToken);
 
     private async Task<RoomResult<AnswerResultDto>> ResolveAnswerAsync(
-        PendingAction pending, bool correct, List<RoomEvent> events, CancellationToken cancellationToken)
+        PendingAction pending, bool correct, List<RoomEvent> events, CancellationToken cancellationToken, bool timedOut = false)
     {
         var pawn = FindPawn(pending.PawnId);
         if (pawn is null)
@@ -476,6 +577,8 @@ public sealed class GameRoom : IDisposable
         }
 
         var before = Capture();
+        var takeover = timedOut && _players[_engine.CurrentPlayerIndex].DisconnectedAtUtc is not null
+            ? TakeOver(_engine.CurrentPlayerIndex) : null;
         var answers = pending.Answers.Append(correct).ToList();
         IReadOnlyList<RoomEvent> step = Array.Empty<RoomEvent>();
         MoveResolution? resolution = null;
@@ -494,13 +597,20 @@ public sealed class GameRoom : IDisposable
             _pending = NewPending(pending.PawnId, pending.Direction, true, pending.Questions, answers);
         }
 
-        Touch();
+        if (!timedOut)
+        {
+            Touch();
+        }
         if (!await TryPersistAsync(before, pending, cancellationToken))
         {
             return RoomResult<AnswerResultDto>.Fail(RoomError.PersistenceFailed);
         }
 
         events.AddRange(step);
+        if (takeover is not null)
+        {
+            events.Add(takeover);
+        }
         var dto = new AnswerResultDto(correct, _pending is null, resolution?.Outcome, _pending is null ? null : ToDto(_pending));
         await DriveNpcAsync(events, cancellationToken);
         return RoomResult<AnswerResultDto>.Ok(dto);
@@ -517,7 +627,7 @@ public sealed class GameRoom : IDisposable
                 return;
             }
 
-            var result = await ResolveAnswerAsync(pending, false, events, CancellationToken.None);
+            var result = await ResolveAnswerAsync(pending, false, events, CancellationToken.None, timedOut: true);
             if (result.Error == RoomError.PersistenceFailed && ReferenceEquals(_pending?.Timer, timer))
             {
                 _pending = NewPending(pending.PawnId, pending.Direction, pending.IsDuel, pending.Questions, pending.Answers);
@@ -526,6 +636,7 @@ public sealed class GameRoom : IDisposable
         }
         finally
         {
+            ScheduleMaintenance();
             _gate.Release();
         }
 
@@ -559,10 +670,13 @@ public sealed class GameRoom : IDisposable
     /// <summary>Lets NPC players act until a human is on turn. Each step is persisted and rolled back on failure.</summary>
     private async Task DriveNpcAsync(List<RoomEvent> events, CancellationToken cancellationToken)
     {
-        for (var steps = 0; steps < MaxNpcStepsPerDrive; steps++)
+        var stepLimit = _players.Any(player =>
+            (!player.IsNpc || player.OriginalPlayerId is not null) && player.DisconnectedAtUtc is null)
+            ? MaxNpcStepsPerDrive
+            : 1;
+        for (var steps = 0; steps < stepLimit; steps++)
         {
-            if (State != RoomState.InProgress || _pending is not null || !_engine.CurrentPlayer.IsNpc ||
-                !_engine.Players.Any(player => !player.IsNpc && !player.IsEliminated))
+            if (!CanDriveNpc())
             {
                 return;
             }
@@ -579,7 +693,12 @@ public sealed class GameRoom : IDisposable
                 return;
             }
 
-            Touch();
+            if (step.Count == 0)
+            {
+                Restore(before);
+                return;
+            }
+
             if (!await TryPersistAsync(before, null, cancellationToken))
             {
                 return;
@@ -601,6 +720,11 @@ public sealed class GameRoom : IDisposable
             }
 
             _engine.NextTurn();
+            var returned = ReturnAtTurnStart(from);
+            if (returned is not null)
+            {
+                return new[] { returned, new RoomEvent(RoomEventType.TurnChanged, Code, _engine.CurrentPlayerIndex) };
+            }
             return _engine.CurrentPlayerIndex != from
                 ? new[] { new RoomEvent(RoomEventType.TurnChanged, Code, _engine.CurrentPlayerIndex) }
                 : Array.Empty<RoomEvent>();
@@ -608,6 +732,10 @@ public sealed class GameRoom : IDisposable
 
         var (npcPawn, direction) = choice.Value;
         var request = await _engine.RequestMove(npcPawn, direction, cancellationToken);
+        if (request.IsBlocked || request.Questions.Count == 0)
+        {
+            return Array.Empty<RoomEvent>();
+        }
         var answers = new List<bool>();
         foreach (var _ in request.Questions)
         {
@@ -637,6 +765,17 @@ public sealed class GameRoom : IDisposable
         if (finished)
         {
             Volatile.Write(ref _state, (int)RoomState.Finished);
+            _result = new RoomGameResultSnapshot
+            {
+                GameId = _gameId ??= Guid.NewGuid(),
+                FinishedAtUtc = _services.Time.GetUtcNow(),
+                Players = _players.Where(player => !player.IsNpc || player.OriginalPlayerId is not null).Select(player => new RoomPlayerResultSnapshot
+                {
+                    PlayerId = player.OriginalPlayerId ?? player.Id,
+                    Name = player.Name,
+                    Won = _engine.Winner is { IsNpc: false } winner && _players[winner.Index].Id == player.Id
+                }).ToList()
+            };
         }
 
         var events = new List<RoomEvent>
@@ -659,6 +798,10 @@ public sealed class GameRoom : IDisposable
         }
         else if (_engine.CurrentPlayerIndex != turnBefore)
         {
+            if (ReturnAtTurnStart(turnBefore) is { } returned)
+            {
+                events.Add(returned);
+            }
             events.Add(new RoomEvent(RoomEventType.TurnChanged, Code, _engine.CurrentPlayerIndex));
         }
 
@@ -682,6 +825,9 @@ public sealed class GameRoom : IDisposable
 
     private int HumanIndex(Guid playerId) => _players.FindIndex(player => !player.IsNpc && player.Id == playerId);
 
+    private int MemberIndex(Guid playerId) => _players.FindIndex(player =>
+        player.Id == playerId && (!player.IsNpc || player.OriginalPlayerId is not null));
+
     private Pawn? FindPawn(Guid pawnId) =>
         _engine.IsStarted ? _engine.Players.SelectMany(player => player.Pawns).FirstOrDefault(pawn => pawn.Id == pawnId) : null;
 
@@ -689,9 +835,126 @@ public sealed class GameRoom : IDisposable
 
     private GameEngine NewEngine() => new(_services.Questions);
 
+    private bool CanDriveNpc() =>
+        State == RoomState.InProgress && _pending is null && _engine.CurrentPlayer.IsNpc &&
+        _services.Time.GetUtcNow() - LastActivityUtc < (_services.InactivityTimeout ?? TimeSpan.FromHours(2)) &&
+        _players.Where((player, index) => !_engine.Players[index].IsEliminated)
+            .Any(player => !player.IsNpc || player.OriginalPlayerId is not null);
+
+    private RoomEvent? TakeOver(int index)
+    {
+        var player = _players[index];
+        if (player.IsNpc)
+        {
+            return null;
+        }
+
+        _players[index] = player with { IsNpc = true, OriginalPlayerId = player.Id };
+        _engine.Players[index].IsNpc = true;
+        return new RoomEvent(RoomEventType.NpcTakeover, Code, index, player.Id);
+    }
+
+    private RoomEvent? ReturnAtTurnStart(int previousIndex)
+    {
+        var index = _engine.CurrentPlayerIndex;
+        var player = _players[index];
+        if (previousIndex == index || !player.IsNpc || player.OriginalPlayerId is null || player.DisconnectedAtUtc is not null)
+        {
+            return null;
+        }
+
+        _players[index] = player with { IsNpc = false, OriginalPlayerId = null };
+        _engine.Players[index].IsNpc = false;
+        return new RoomEvent(RoomEventType.SettingsChanged, Code, index, player.Id);
+    }
+
+    private void ScheduleMaintenance()
+    {
+        _maintenanceTimer?.Dispose();
+        _maintenanceTimer = null;
+        if (_closed || State != RoomState.InProgress)
+        {
+            return;
+        }
+
+        var now = _services.Time.GetUtcNow();
+        var deadlines = _players.Where(player => !player.IsNpc && player.DisconnectedAtUtc is not null)
+            .Select(player => player.DisconnectedAtUtc!.Value + DisconnectGracePeriod).ToList();
+        if (CanDriveNpc())
+        {
+            deadlines.Add(now + TimeSpan.FromSeconds(1));
+        }
+
+        if (deadlines.Count == 0)
+        {
+            return;
+        }
+
+        var delay = deadlines.Min() - now;
+        if (delay <= TimeSpan.Zero)
+        {
+            delay = TimeSpan.FromSeconds(1);
+        }
+
+        _maintenanceTimer = _services.Time.CreateTimer(
+            _ => _lastTimeoutTask = HandleMaintenanceAsync(), null, delay, Timeout.InfiniteTimeSpan);
+    }
+
+    private async Task HandleMaintenanceAsync()
+    {
+        var events = new List<RoomEvent>();
+        await _gate.WaitAsync();
+        try
+        {
+            if (_closed || State != RoomState.InProgress)
+            {
+                return;
+            }
+
+            await TakeOverExpiredAsync(events);
+            await DriveNpcAsync(events, CancellationToken.None);
+        }
+        finally
+        {
+            ScheduleMaintenance();
+            _gate.Release();
+        }
+
+        Publish(events);
+    }
+
+    private async Task TakeOverExpiredAsync(List<RoomEvent> events)
+    {
+        for (var index = 0; index < _players.Count; index++)
+        {
+            var player = _players[index];
+            if (player.IsNpc || player.DisconnectedAtUtc is not { } disconnected ||
+                _services.Time.GetUtcNow() - disconnected < DisconnectGracePeriod)
+            {
+                continue;
+            }
+
+            var before = Capture();
+            var pendingBefore = _pending;
+            var step = new List<RoomEvent> { TakeOver(index)! };
+            if (_engine.CurrentPlayerIndex == index && _pending is { } pending && FindPawn(pending.PawnId) is { } pawn)
+            {
+                _pending = null;
+                step.AddRange(Resolve(pawn, pending.Direction, pending.IsDuel, pending.Answers.Append(false).ToList()));
+            }
+
+            if (!await TryPersistAsync(before, pendingBefore, CancellationToken.None))
+            {
+                return;
+            }
+
+            events.AddRange(step);
+        }
+    }
+
     private BoardViewDto BuildView(Guid? viewerId)
     {
-        var viewerIndex = viewerId is { } id ? HumanIndex(id) : -1;
+        var viewerIndex = viewerId is { } id ? MemberIndex(id) : -1;
         var started = _engine.IsStarted;
         var board = started ? _engine.Board : new BoardFactory().Create(_boardSize, _seed);
         var themes = new List<QuestionTheme>(board.Size * board.Size);
@@ -709,7 +972,8 @@ public sealed class GameRoom : IDisposable
             var player = _players[index];
             var engineColor = started ? _engine.Players[index].Color : string.Empty;
             var remaining = started ? _engine.Players[index].ActivePawns.Count : 0;
-            players.Add(new PlayerViewDto(index, player.Id, player.Name, engineColor, player.IsNpc, player.Id == _hostId, remaining));
+            players.Add(new PlayerViewDto(index, player.Id, player.Name, engineColor, player.IsNpc, player.Id == _hostId, remaining,
+                player.DisconnectedAtUtc is not null, player.OriginalPlayerId));
         }
 
         var pawns = started
@@ -719,7 +983,8 @@ public sealed class GameRoom : IDisposable
             : new List<PawnViewDto>();
 
         var moves = new List<MoveTargetDto>();
-        if (started && State == RoomState.InProgress && _pending is null && viewerIndex >= 0 && _engine.CurrentPlayerIndex == viewerIndex)
+        if (started && State == RoomState.InProgress && _pending is null && viewerIndex >= 0 &&
+            !_players[viewerIndex].IsNpc && _engine.CurrentPlayerIndex == viewerIndex)
         {
             foreach (var pawn in _engine.Players[viewerIndex].ActivePawns)
             {
@@ -755,7 +1020,13 @@ public sealed class GameRoom : IDisposable
             Seed = _seed,
             CreatedAtUtc = _createdAt,
             LastActivityUtc = LastActivityUtc,
-            Players = _players.Select(player => new PlayerSnapshot { Id = player.Id, Name = player.Name, IsNpc = player.IsNpc }).ToList()
+            GameId = _gameId,
+            Result = _result,
+            Players = _players.Select(player => new PlayerSnapshot
+            {
+                Id = player.Id, Name = player.Name, IsNpc = player.IsNpc,
+                DisconnectedAtUtc = player.DisconnectedAtUtc, OriginalPlayerId = player.OriginalPlayerId
+            }).ToList()
         };
         if (_engine.IsStarted)
         {
@@ -789,12 +1060,17 @@ public sealed class GameRoom : IDisposable
 
     private void Restore(RoomSnapshot snapshot)
     {
-        if (snapshot.Players.Count is < 1 or > MaxPlayers || snapshot.Players.All(player => player.IsNpc))
+        if (snapshot.Players.Count > MaxPlayers ||
+            (snapshot.State != RoomState.Finished && (snapshot.Players.Count < 1 ||
+                snapshot.Players.All(player => player.IsNpc && player.OriginalPlayerId is null))))
         {
             throw new InvalidOperationException("The saved room is invalid.");
         }
 
-        _players = snapshot.Players.Select(player => new RoomPlayer(player.Id, player.Name, player.IsNpc)).ToList();
+        _players = snapshot.Players.Select(player => new RoomPlayer(player.Id, player.Name, player.IsNpc,
+            player.DisconnectedAtUtc, player.OriginalPlayerId)).ToList();
+        _gameId = snapshot.GameId ?? (snapshot.Game is null ? null : Guid.NewGuid());
+        _result = snapshot.Result;
         _hostId = snapshot.HostPlayerId;
         _boardSize = snapshot.BoardSize;
         _seed = snapshot.Seed;
@@ -859,6 +1135,7 @@ public sealed class GameRoom : IDisposable
         }
         finally
         {
+            ScheduleMaintenance();
             _gate.Release();
         }
 

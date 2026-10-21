@@ -7,4 +7,5 @@ public sealed record RoomServices(
     IQuestionProvider Questions,
     INpcStrategy Npc,
     TimeProvider Time,
-    TimeSpan QuestionTimeLimit);
+    TimeSpan QuestionTimeLimit,
+    TimeSpan? InactivityTimeout = null);

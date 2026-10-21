@@ -35,6 +35,7 @@
                         <span class="name">@player.Name</span>
                         @if (player.IsHost) { <span class="badge">@Texts.Host</span> }
                         @if (player.IsNpc) { <span class="badge npc">@Texts.Npc</span> }
+                        @if (player.IsDisconnected) { <span class="badge disconnected">@Texts["Disconnected"]</span> }
                         @if (player.Index == _view.ViewerIndex) { <span class="badge me">@Texts.You</span> }
                         @if (_view.IsViewerHost && player.IsNpc)
                         {
@@ -97,8 +98,14 @@
 
     [Parameter] public string Code { get; set; } = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        if (_room?.Code.Equals(Code, StringComparison.OrdinalIgnoreCase) == true) return;
+        _subscription?.Dispose();
+        _subscription = null;
+        _refreshVersion++;
+        _view = null;
+        _copied = false;
         _playerId = Identity.GetOrCreatePlayerId();
         _room = Rooms.GetRoom(Code);
         if (_room is null)
@@ -148,7 +155,7 @@
         }
 
         _view = view;
-        if (view.ViewerIndex < 0)
+        if (view.ViewerIndex < 0 && !view.Players.Any(p => p.Id == _playerId || p.OriginalPlayerId == _playerId))
         {
             Navigation.NavigateTo($"/?notice=notmember&code={Uri.EscapeDataString(view.Code)}");
         }
@@ -158,7 +165,7 @@
         }
         else if (view.State == RoomState.Finished)
         {
-            Navigation.NavigateTo("/?notice=finished");
+            Navigation.NavigateTo($"/game/{view.Code}");
         }
     }
 
